@@ -57,56 +57,28 @@ button {
   margin-top: 10px;
 }
 
-.tabs { display: flex; gap: 8px; justify-content: space-between; }
+.tabs { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
 .tab-button {
-  border: none;
-  background: none;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   color: var(--muted);
+  padding: 8px 12px;
+  border-radius: 12px;
+  min-width: 92px;
+  text-align: center;
+  font-weight: 700;
+  box-shadow: var(--shadow);
 }
-.tab-button.tab-button-timeline {
-  height: 30px;
-  width: 60px;
-  background: url(img/home_off.svg) no-repeat center;
-  background-size: 40%;
-}
-.tab-button.tab-button-timeline.active {
-  background: url(img/home_on.svg) no-repeat center;
-  background-size: 40%;
-}
-.tab-button.tab-button-search {
-  height: 30px;
-  width: 60px;
-  background: url(img/search_off.svg) no-repeat center;
-  background-size: 40%;
-}
-.tab-button.tab-button-search.active {
-  background: url(img/search_on.svg) no-repeat center;
-  background-size: 40%;
+.tab-button.active {
+  background: #eaf3ff;
+  color: #1f7aee;
+  border-color: #bcd6ff;
+  box-shadow: 0 2px 10px rgba(31, 122, 238, 0.15);
 }
 .search-button {
   width: fit-content;
   padding: 0 20px;
-}
-.tab-button.tab-button-dashboard {
-  height: 30px;
-  width: 60px;
-  background: url(img/graph_off.svg) no-repeat center;
-  background-size: 40%;
-}
-.tab-button.tab-button-dashboard.active {
-  background: url(img/graph_on.svg) no-repeat center;
-  background-size: 40%;
-}
-.tab-button.tab-button-import {
-  height: 30px;
-  width: 60px;
-  background: url(img/import_off.svg) no-repeat center;
-  background-size: 40%;
-}
-.tab-button.tab-button-import.active {
-  background: url(img/import_on.svg) no-repeat center;
-  background-size: 40%;
 }
 
 .main-container {
@@ -114,7 +86,16 @@ button {
   margin: 0 auto;
   padding-bottom: 75px;
 }
-.card-list { 
+.map-placeholder {
+  margin: 40px auto;
+  padding: 24px 16px;
+  background: #fff;
+  border-radius: 16px;
+  color: var(--muted);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.card-list {
   display: flex;
   flex-direction: column;
 }
@@ -704,8 +685,9 @@ button {
 }
 
 .fab-button {
+  position: fixed;
   right: 20px;
-  bottom: 80px;
+  bottom: 90px;
   width: 55px;
   height: 55px;
   border-radius: 50%;
@@ -715,9 +697,9 @@ button {
   cursor: pointer;
   box-shadow: var(--shadow);
   font-size: 3rem;
-  margin-top: -20px;
   font-weight: 600;
   text-align: center;
+  z-index: 9;
 }
 .text-block-container {
   display: flex;
