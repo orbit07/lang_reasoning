@@ -13,17 +13,24 @@
 <body>
   <header class="app-header">
     <nav class="tabs">
-      <button data-tab="timeline" class="tab-button tab-button-timeline active"></button>
-      <button data-tab="search" class="tab-button tab-button-search"></button>
-      <button id="fab-new-post" class="fab-button" aria-label="新規投稿">＋</button>
-      <button data-tab="dashboard" class="tab-button tab-button-dashboard"></button>
-      <button data-tab="import" class="tab-button tab-button-import"></button>
+      <button data-tab="dashboard" class="tab-button tab-button-dashboard">Dashboard</button>
+      <button data-tab="timeline" class="tab-button tab-button-timeline active">Timeline</button>
+      <button data-tab="puzzles" class="tab-button tab-button-puzzles">Puzzles</button>
+      <button data-tab="search" class="tab-button tab-button-search">Search</button>
+      <button data-tab="map" class="tab-button tab-button-map">Map</button>
+      <button data-tab="import" class="tab-button tab-button-import">Import</button>
     </nav>
   </header>
 
   <main class="main-container">
     <section id="timeline" class="tab-panel active">
       <div id="timeline-list" class="card-list"></div>
+      <button id="fab-new-post" class="fab-button" aria-label="新規投稿">＋</button>
+    </section>
+
+    <section id="puzzles" class="tab-panel">
+      <div id="puzzle-list" class="card-list"></div>
+      <button id="fab-new-puzzle" class="fab-button" aria-label="謎の新規投稿">＋</button>
     </section>
 
     <section id="search" class="tab-panel search-panel">
@@ -45,6 +52,10 @@
         </div>
         <div id="dashboard-heatmap-container" class="dashboard-heatmap-container"></div>
       </div>
+    </section>
+
+    <section id="map" class="tab-panel">
+      <div class="map-placeholder">Map view is coming soon.</div>
     </section>
 
     <section id="import" class="tab-panel">

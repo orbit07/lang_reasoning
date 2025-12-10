@@ -599,7 +599,6 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
         isDeleted: false,
         pinned: false,
         pinnedAt: null,
-        repostOf: targetPost?.id ?? null,
         sourceUrl: sourceInput.value.trim() || null,
         linkedPuzzleIds: Array.from(new Set(
           puzzleInput.value
@@ -680,6 +679,7 @@ function getHeatmapColor(count) {
 
 function render() {
   renderTimeline();
+  renderPuzzles();
   runSearch();
   if (state.currentTab === 'dashboard') {
     renderDashboard();
@@ -926,6 +926,15 @@ function renderTimeline() {
   renderCardList(container, sorted, { emptyMessage: '投稿がありません。' });
 }
 
+function renderPuzzles() {
+  const container = document.getElementById('puzzle-list');
+  if (!container) return;
+  const puzzles = state.data.posts
+    .filter((p) => Array.isArray(p.linkedPuzzleIds) && p.linkedPuzzleIds.length > 0)
+    .sort((a, b) => b.createdAt - a.createdAt);
+  renderCardList(container, puzzles, { emptyMessage: '謎の投稿がありません。' });
+}
+
 function renderImages() {
   const container = document.getElementById('images-list');
   const posts = state.data.posts.filter((p) => p.imageId && state.data.images[p.imageId]);
@@ -947,20 +956,6 @@ function renderPostCard(post, options = {}) {
   metaText.className = 'card-meta-item';
   metaText.textContent = `${formatDate(post.createdAt)}${post.updatedAt && post.updatedAt !== post.createdAt ? '（Edited）' : ''}`;
   meta.appendChild(metaText);
-
-  if (post.pinned) {
-    const pinnedBadge = document.createElement('span');
-    pinnedBadge.className = 'card-meta-item pin-badge';
-    pinnedBadge.textContent = 'Pinned';
-    meta.appendChild(pinnedBadge);
-  }
-
-  if (post.repostOf) {
-    const repostInfo = document.createElement('span');
-    repostInfo.className = 'card-meta-item repost-info';
-    repostInfo.innerHTML = '/ <img src="img/repost.svg" alt="リポスト" width="16" class="icon-inline"> Repost';
-    meta.appendChild(repostInfo);
-  }
 
   body.innerHTML = '';
   if (post.isDeleted) {
@@ -1085,14 +1080,6 @@ function renderPostCard(post, options = {}) {
     editBtn.innerHTML = '<img src="img/edit.svg" alt="編集" width="20" class="icon-inline">';
     editBtn.addEventListener('click', () => openModal(buildPostForm({ mode: 'edit', targetPost: post }), '投稿を編集'));
 
-    const repostBtn = document.createElement('button');
-    repostBtn.className = 'card-action-button repost-action-button';
-    repostBtn.innerHTML = '<img src="img/repost.svg" alt="リポスト" width="20" class="icon-inline">';
-    repostBtn.addEventListener('click', () => {
-      const duplicate = { ...post, repostOf: post.id };
-      openModal(buildPostForm({ mode: 'create', targetPost: duplicate }), 'リポスト');
-    });
-
     const replyBtn = document.createElement('button');
     replyBtn.className = 'card-action-button';
     replyBtn.innerHTML = '<img src="img/reply.svg" alt="返信" width="20" class="icon-inline">';
@@ -1106,7 +1093,7 @@ function renderPostCard(post, options = {}) {
     if (post.pinned) pinBtn.classList.add('liked');
     pinBtn.addEventListener('click', () => togglePinned(post.id));
 
-    actions.append(delBtn, editBtn, repostBtn, replyBtn, pinBtn);
+    actions.append(delBtn, editBtn, replyBtn, pinBtn);
   }
 
   const rels = state.data.replies
@@ -1372,7 +1359,6 @@ function importConversationMessages(messages) {
     isDeleted: false,
     pinned: false,
     pinnedAt: null,
-    repostOf: null,
     sourceUrl: null,
     linkedPuzzleIds: [],
   };
@@ -1439,9 +1425,9 @@ function setupTabs() {
 }
 
 function setupGlobalEvents() {
-  ['new-post-btn', 'fab-new-post'].forEach((id) => {
+  ['new-post-btn', 'fab-new-post', 'fab-new-puzzle'].forEach((id) => {
     const btn = document.getElementById(id);
-    if (btn) btn.addEventListener('click', () => openModal(buildPostForm({ mode: 'create' }), '新規投稿'));
+    if (btn) btn.addEventListener('click', () => openModal(buildPostForm({ mode: 'create' }), id === 'fab-new-puzzle' ? '新規Puzzle' : '新規投稿'));
   });
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('image-close').addEventListener('click', closeImageViewer);
