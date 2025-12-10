@@ -687,7 +687,6 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   const fragment = document.createDocumentFragment();
   const container = document.createElement('div');
   container.className = 'modal-body-section puzzle-form';
-  fragment.appendChild(container);
 
   const base = targetPuzzle || {
     id: '',
@@ -955,7 +954,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   Object.entries(tabButtons).forEach(([key, btn]) => btn.addEventListener('click', () => setActiveTab(key)));
   setActiveTab('basic');
 
-  container.append(tabNav, sections.basic, sections.clue, sections.solution);
+  container.append(sections.basic, sections.clue, sections.solution);
+  fragment.append(tabNav, container);
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions';
