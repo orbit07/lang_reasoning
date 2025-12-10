@@ -1402,10 +1402,7 @@ function renderPuzzleCard(puzzle) {
   speakBtn.className = 'text-action-button text-label-button';
   speakBtn.innerHTML = `<img src="img/vol.svg" alt="" width="16" class="icon-inline"> ${langLabel}`;
   speakBtn.addEventListener('click', () => playSpeech(puzzle.text, puzzle.language));
-  const langText = document.createElement('span');
-  langText.className = 'puzzle-language-label';
-  langText.textContent = langLabel;
-  header.append(speakBtn, langText);
+  header.append(speakBtn);
 
   const textBlock = document.createElement('div');
   textBlock.className = 'puzzle-text';
@@ -1501,22 +1498,30 @@ function renderPuzzleCard(puzzle) {
 
   const actions = document.createElement('div');
   actions.className = 'card-actions';
-  const editBtn = document.createElement('button');
-  editBtn.className = 'card-action-button';
-  editBtn.innerHTML = '<img src="img/edit.svg" alt="編集" width="20" class="icon-inline">';
-  editBtn.addEventListener('click', () => openModal(buildPuzzleForm({ mode: 'edit', targetPuzzle: puzzle }), '謎カードを編集'));
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'card-action-button danger-action-button';
+  deleteBtn.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
+  deleteBtn.addEventListener('click', () => deletePuzzle(puzzle.id));
 
   const solvedBtn = document.createElement('button');
   solvedBtn.className = 'card-action-button';
   solvedBtn.textContent = puzzle.isSolved ? '未解決に戻す' : '解決ボタン';
   solvedBtn.addEventListener('click', () => togglePuzzleSolved(puzzle.id));
 
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'card-action-button danger-action-button';
-  deleteBtn.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
-  deleteBtn.addEventListener('click', () => deletePuzzle(puzzle.id));
+  const editBtn = document.createElement('button');
+  editBtn.className = 'card-action-button';
+  editBtn.innerHTML = '<img src="img/edit.svg" alt="編集" width="20" class="icon-inline">';
+  editBtn.addEventListener('click', () => openModal(buildPuzzleForm({ mode: 'edit', targetPuzzle: puzzle }), '謎カードを編集'));
 
-  actions.append(editBtn, solvedBtn, deleteBtn);
+  const pinBtn = document.createElement('button');
+  pinBtn.className = 'card-action-button';
+  pinBtn.innerHTML = puzzle.pinned
+    ? '<img src="img/hart_on.svg" alt="ピン留め中" width="20" class="icon-inline">'
+    : '<img src="img/hart_off.svg" alt="ピン留め" width="20" class="icon-inline">';
+  if (puzzle.pinned) pinBtn.classList.add('liked');
+  pinBtn.addEventListener('click', () => togglePuzzlePinned(puzzle.id));
+
+  actions.append(deleteBtn, solvedBtn, editBtn, pinBtn);
 
   card.append(meta, body, actions);
   return card;
@@ -1831,6 +1836,16 @@ function togglePinned(id) {
   if (!post || post.isDeleted) return;
   post.pinned = !post.pinned;
   post.pinnedAt = post.pinned ? Date.now() : null;
+  persistData();
+  render();
+}
+
+function togglePuzzlePinned(id) {
+  const puzzle = state.data.puzzles.find((p) => p.id === id);
+  if (!puzzle) return;
+  puzzle.pinned = !puzzle.pinned;
+  puzzle.pinnedAt = puzzle.pinned ? Date.now() : null;
+  puzzle.updatedAt = Date.now();
   persistData();
   render();
 }

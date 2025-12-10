@@ -883,8 +883,6 @@ button {
   flex-wrap: wrap;
 }
 
-.puzzle-language-label { color: var(--muted); font-size: 1.4rem; }
-
 .puzzle-text { font-size: 1.8rem; line-height: 1.6; white-space: pre-wrap; }
 
 .puzzle-section-content {
