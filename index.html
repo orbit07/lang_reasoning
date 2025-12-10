@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#f7f9fc" />
+<title>Uni</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="img/icon-192.png" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <nav class="tabs">
+      <button data-tab="timeline" class="tab-button tab-button-timeline active"></button>
+      <button data-tab="search" class="tab-button tab-button-search"></button>
+      <button id="fab-new-post" class="fab-button" aria-label="新規投稿">＋</button>
+      <button data-tab="dashboard" class="tab-button tab-button-dashboard"></button>
+      <button data-tab="import" class="tab-button tab-button-import"></button>
+    </nav>
+  </header>
+
+  <main class="main-container">
+    <section id="timeline" class="tab-panel active">
+      <div id="timeline-list" class="card-list"></div>
+    </section>
+
+    <section id="search" class="tab-panel search-panel">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="キーワード または #タグ で検索" class="search-input" />
+        <button id="search-like-btn" class="icon-toggle-button" aria-pressed="false" aria-label="いいねフィルター">
+          <img src="img/hart_off.svg" alt="いいねフィルター" width="24" height="24" class="icon-inline" />
+        </button>
+        <button id="search-btn" class="primary-button search-button">Search</button>
+      </div>
+      <div id="search-results" class="card-list"></div>
+    </section>
+
+    <section id="dashboard" class="tab-panel">
+      <div id="dashboard-panel" class="dashboard-panel">
+        <div class="dashboard-chart">
+          <div id="dashboard-chart-container" class="dashboard-chart-container"></div>
+          <div id="dashboard-text-counts" class="dashboard-text-counts"></div>
+        </div>
+        <div id="dashboard-heatmap-container" class="dashboard-heatmap-container"></div>
+      </div>
+    </section>
+
+    <section id="import" class="tab-panel">
+      <div class="import-export-panel">
+        <div class="header-actions">
+          <label class="file-button import-button">
+            <input type="file" id="import-input" accept="application/json" class="file-input" />
+            インポート
+          </label>
+          <button id="export-btn" class="export-button">エクスポート</button>
+        </div>
+        <div class="import-textarea-block">
+          <p class="helper">JSONを貼り付けて差分インポートできます。</p>
+          <textarea id="import-textarea" class="import-textarea" placeholder="ここにJSONを貼り付けてください"></textarea>
+          <button id="import-text-btn" class="import-text-btn primary-button">テキストからインポート</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title" class="modal-title">投稿</h2>
+        <button id="modal-close" class="modal-close-button" aria-label="閉じる"><img src="img/delete.svg" alt="削除" width="20" class="icon-inline"></button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="image-viewer" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-content image-content">
+      <button id="image-close" class="modal-close-button image-close-button" aria-label="閉じる"><img src="img/delete.svg" alt="削除" width="25" class="icon-inline"></button>
+      <img id="full-image" class="full-image" alt="拡大画像" />
+    </div>
+  </div>
+
+  <template id="post-template">
+    <article class="card">
+      <div class="card-meta"></div>
+      <div class="card-body"></div>
+      <div class="tag-list"></div>
+      <div class="card-actions"></div>
+      <div class="replies"></div>
+    </article>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
