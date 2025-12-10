@@ -655,6 +655,54 @@ button {
 }
 .remove-image-icon { border:none; width: 25px; height: 25px; }
 
+.pin-badge {
+  background: #fff4e5;
+  color: #d97706;
+  border: 1px solid #f4b400;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-weight: 700;
+}
+
+.post-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.post-extra-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.post-extra-label {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.post-extra-link {
+  color: #2f6fe4;
+  word-break: break-all;
+}
+
+.puzzle-chip-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.puzzle-chip {
+  background: #eef5ff;
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+  color: #2f6fe4;
+}
+
 .fab-button {
   right: 20px;
   bottom: 80px;
