@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'lang-sns-data';
-const DATA_VERSION = 1;
+const DATA_VERSION = 2;
 const STORAGE_LIMIT = 5 * 1024 * 1024; // 5MB approximate
 const IMAGE_RESIZE_THRESHOLD = 1024 * 1024; // 1MB
 
@@ -76,6 +76,7 @@ function loadData() {
   }
 
   ensureSpeakerFields(state.data);
+  ensurePostFields(state.data);
 }
 
 function persistData() {
@@ -155,6 +156,21 @@ function ensureSpeakerFields(data) {
 
   sync(data?.posts);
   sync(data?.replies);
+}
+
+function ensurePostFields(data) {
+  (data?.posts || []).forEach((post) => {
+    const pinnedLegacy = post.pinned ?? post.liked ?? false;
+    post.pinned = Boolean(pinnedLegacy);
+    post.pinnedAt = post.pinned
+      ? post.pinnedAt ?? post.likedAt ?? post.updatedAt ?? post.createdAt ?? Date.now()
+      : null;
+    delete post.liked;
+    delete post.likedAt;
+
+    if (post.sourceUrl === undefined) post.sourceUrl = null;
+    if (!Array.isArray(post.linkedPuzzleIds)) post.linkedPuzzleIds = [];
+  });
 }
 
 function removeImageIfUnused(imageId) {
@@ -353,6 +369,7 @@ function createTextBlockInput(value = '', lang = 'ja', pronunciation = '', speak
 
 function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) {
   const fragment = document.createDocumentFragment();
+  const isReplyContext = mode === 'reply' || Boolean(targetPost?.postId);
   const container = document.createElement('div');
   container.className = 'modal-body-section';
   fragment.appendChild(container);
@@ -370,6 +387,30 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   textAreaContainer.id = 'text-block-container';
   textAreaContainer.classList.add('text-block-container');
   let addBtn;
+
+  const sourceSection = document.createElement('div');
+  sourceSection.className = 'modal-tag-section';
+  const sourceLabel = document.createElement('label');
+  sourceLabel.className = 'tag-label';
+  sourceLabel.textContent = '参考URL (sourceUrl)';
+  const sourceInput = document.createElement('input');
+  sourceInput.type = 'url';
+  sourceInput.placeholder = 'https://example.com';
+  sourceInput.className = 'tag-input';
+  if (targetPost?.sourceUrl) sourceInput.value = targetPost.sourceUrl;
+  sourceSection.append(sourceLabel, sourceInput);
+
+  const puzzleSection = document.createElement('div');
+  puzzleSection.className = 'modal-tag-section';
+  const puzzleLabel = document.createElement('label');
+  puzzleLabel.className = 'tag-label';
+  puzzleLabel.textContent = '紐づく謎ID一覧 (linkedPuzzleIds)';
+  const puzzleInput = document.createElement('input');
+  puzzleInput.type = 'text';
+  puzzleInput.placeholder = '1, 2, 3';
+  puzzleInput.className = 'tag-input';
+  if (targetPost?.linkedPuzzleIds?.length) puzzleInput.value = targetPost.linkedPuzzleIds.join(', ');
+  puzzleSection.append(puzzleLabel, puzzleInput);
 
   const updateTextControls = () => {
     const count = textAreaContainer.children.length;
@@ -524,6 +565,16 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
     } else if (mode === 'edit' && targetPost) {
       targetPost.texts = textBlocks;
       targetPost.tags = tags;
+      if (!isReplyContext) {
+        targetPost.sourceUrl = sourceInput.value.trim() || null;
+        const puzzleIds = Array.from(new Set(
+          puzzleInput.value
+            .split(/[\s,、]+/)
+            .map((t) => Number(t))
+            .filter((n) => Number.isFinite(n)),
+        ));
+        targetPost.linkedPuzzleIds = puzzleIds;
+      }
       targetPost.updatedAt = Date.now();
       if (imageDataUrl !== null) {
         targetPost.imageId = imageId;
@@ -546,9 +597,16 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
         imageId: imageId || null,
         imageRemoved: false,
         isDeleted: false,
-        liked: false,
-        likedAt: null,
+        pinned: false,
+        pinnedAt: null,
         repostOf: targetPost?.id ?? null,
+        sourceUrl: sourceInput.value.trim() || null,
+        linkedPuzzleIds: Array.from(new Set(
+          puzzleInput.value
+            .split(/[\s,、]+/)
+            .map((t) => Number(t))
+            .filter((n) => Number.isFinite(n)),
+        )),
       };
       state.data.posts.push(post);
     }
@@ -563,6 +621,10 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   container.appendChild(textAreaContainer);
   container.appendChild(addBtn);
   container.appendChild(imageRow);
+  if (!isReplyContext) {
+    fragment.appendChild(sourceSection);
+    fragment.appendChild(puzzleSection);
+  }
   fragment.appendChild(tagSection);
   fragment.appendChild(actions);
   return fragment;
@@ -886,6 +948,13 @@ function renderPostCard(post, options = {}) {
   metaText.textContent = `${formatDate(post.createdAt)}${post.updatedAt && post.updatedAt !== post.createdAt ? '（Edited）' : ''}`;
   meta.appendChild(metaText);
 
+  if (post.pinned) {
+    const pinnedBadge = document.createElement('span');
+    pinnedBadge.className = 'card-meta-item pin-badge';
+    pinnedBadge.textContent = 'Pinned';
+    meta.appendChild(pinnedBadge);
+  }
+
   if (post.repostOf) {
     const repostInfo = document.createElement('span');
     repostInfo.className = 'card-meta-item repost-info';
@@ -965,6 +1034,45 @@ function renderPostCard(post, options = {}) {
   });
   tagsEl.style.display = post.tags.length ? '' : 'none';
 
+  if (!post.isDeleted) {
+    const extra = document.createElement('div');
+    extra.className = 'post-extra';
+    if (post.sourceUrl) {
+      const sourceRow = document.createElement('div');
+      sourceRow.className = 'post-extra-row';
+      sourceRow.innerHTML = '<span class="post-extra-label">参考URL:</span>';
+      const link = document.createElement('a');
+      link.href = post.sourceUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = post.sourceUrl;
+      link.className = 'post-extra-link';
+      sourceRow.appendChild(link);
+      extra.appendChild(sourceRow);
+    }
+    if (post.linkedPuzzleIds?.length) {
+      const puzzleRow = document.createElement('div');
+      puzzleRow.className = 'post-extra-row';
+      const label = document.createElement('span');
+      label.className = 'post-extra-label';
+      label.textContent = '紐づく謎ID:';
+      puzzleRow.appendChild(label);
+      const list = document.createElement('div');
+      list.className = 'puzzle-chip-list';
+      post.linkedPuzzleIds.forEach((id) => {
+        const chip = document.createElement('span');
+        chip.className = 'puzzle-chip';
+        chip.textContent = `#${id}`;
+        list.appendChild(chip);
+      });
+      puzzleRow.appendChild(list);
+      extra.appendChild(puzzleRow);
+    }
+    if (extra.childElementCount) {
+      body.appendChild(extra);
+    }
+  }
+
   actions.innerHTML = '';
   if (!post.isDeleted) {
     const delBtn = document.createElement('button');
@@ -990,15 +1098,15 @@ function renderPostCard(post, options = {}) {
     replyBtn.innerHTML = '<img src="img/reply.svg" alt="返信" width="20" class="icon-inline">';
     replyBtn.addEventListener('click', () => openModal(buildPostForm({ mode: 'reply', parentId: post.id }), '返信'));
 
-    const likeBtn = document.createElement('button');
-    likeBtn.className = 'card-action-button';
-    likeBtn.innerHTML = post.liked
-      ? '<img src="img/hart_on.svg" alt="いいね中" width="20" class="icon-inline">'
-      : '<img src="img/hart_off.svg" alt="いいね" width="20" class="icon-inline">';
-    if (post.liked) likeBtn.classList.add('liked');
-    likeBtn.addEventListener('click', () => toggleLike(post.id));
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'card-action-button';
+    pinBtn.innerHTML = post.pinned
+      ? '<img src="img/hart_on.svg" alt="ピン留め中" width="20" class="icon-inline">'
+      : '<img src="img/hart_off.svg" alt="ピン留め" width="20" class="icon-inline">';
+    if (post.pinned) pinBtn.classList.add('liked');
+    pinBtn.addEventListener('click', () => togglePinned(post.id));
 
-    actions.append(delBtn, editBtn, repostBtn, replyBtn, likeBtn);
+    actions.append(delBtn, editBtn, repostBtn, replyBtn, pinBtn);
   }
 
   const rels = state.data.replies
@@ -1121,17 +1229,17 @@ function deleteReply(id) {
   render();
 }
 
-function toggleLike(id) {
+function togglePinned(id) {
   const post = state.data.posts.find((p) => p.id === id);
   if (!post || post.isDeleted) return;
-  post.liked = !post.liked;
-  post.likedAt = post.liked ? Date.now() : null;
+  post.pinned = !post.pinned;
+  post.pinnedAt = post.pinned ? Date.now() : null;
   persistData();
   render();
 }
 
-function toggleSearchLikeFilter() {
-  const btn = document.getElementById('search-like-btn');
+function toggleSearchPinnedFilter() {
+  const btn = document.getElementById('search-pin-btn');
   if (!btn) return;
   const nextState = !btn.classList.contains('active');
   btn.classList.toggle('active', nextState);
@@ -1140,8 +1248,8 @@ function toggleSearchLikeFilter() {
   if (icon) icon.src = nextState ? 'img/hart_on.svg' : 'img/hart_off.svg';
 }
 
-function isSearchLikeFilterActive() {
-  return document.getElementById('search-like-btn')?.classList.contains('active');
+function isSearchPinnedFilterActive() {
+  return document.getElementById('search-pin-btn')?.classList.contains('active');
 }
 
 function runSearch() {
@@ -1164,8 +1272,8 @@ function runSearch() {
     const lowerTerms = textTerms.map((t) => t.toLowerCase());
     results = results.filter((p) => lowerTerms.every((term) => p.texts.some((t) => t.content.toLowerCase().includes(term))));
   }
-  if (isSearchLikeFilterActive()) {
-    results = results.filter((p) => p.liked);
+  if (isSearchPinnedFilterActive()) {
+    results = results.filter((p) => p.pinned);
   }
   results.sort((a, b) => b.createdAt - a.createdAt);
 
@@ -1220,6 +1328,7 @@ function mergeImportedData(incoming) {
 
   state.data = merged;
   ensureSpeakerFields(state.data);
+  ensurePostFields(state.data);
   persistData();
   render();
 }
@@ -1261,9 +1370,11 @@ function importConversationMessages(messages) {
     imageId: null,
     imageRemoved: false,
     isDeleted: false,
-    liked: false,
-    likedAt: null,
+    pinned: false,
+    pinnedAt: null,
     repostOf: null,
+    sourceUrl: null,
+    linkedPuzzleIds: [],
   };
   state.data.posts.push(post);
 
@@ -1364,8 +1475,8 @@ function setupGlobalEvents() {
     });
   }
   document.getElementById('search-btn').addEventListener('click', runSearch);
-  const likeFilterBtn = document.getElementById('search-like-btn');
-  if (likeFilterBtn) likeFilterBtn.addEventListener('click', () => { toggleSearchLikeFilter(); runSearch(); });
+  const likeFilterBtn = document.getElementById('search-pin-btn');
+  if (likeFilterBtn) likeFilterBtn.addEventListener('click', () => { toggleSearchPinnedFilter(); runSearch(); });
   document.getElementById('search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch(); });
   window.addEventListener('beforeunload', () => window.speechSynthesis.cancel());
 }
