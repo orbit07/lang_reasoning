@@ -1,11 +1,12 @@
 const STORAGE_KEY = 'lang-sns-data';
-const DATA_VERSION = 2;
+const DATA_VERSION = 3;
 const STORAGE_LIMIT = 5 * 1024 * 1024; // 5MB approximate
 const IMAGE_RESIZE_THRESHOLD = 1024 * 1024; // 1MB
 
 const defaultData = () => ({
   version: DATA_VERSION,
   posts: [],
+  puzzles: [],
   replies: [],
   images: {},
   lastId: 0,
@@ -77,6 +78,7 @@ function loadData() {
 
   ensureSpeakerFields(state.data);
   ensurePostFields(state.data);
+  ensurePuzzleFields(state.data);
 }
 
 function persistData() {
@@ -170,6 +172,41 @@ function ensurePostFields(data) {
 
     if (post.sourceUrl === undefined) post.sourceUrl = null;
     if (!Array.isArray(post.linkedPuzzleIds)) post.linkedPuzzleIds = [];
+  });
+}
+
+function ensurePuzzleFields(data) {
+  const defaultReview = () => ({ intervalIndex: 0, nextReviewDate: null, history: [] });
+  (data?.puzzles || []).forEach((puzzle, index) => {
+    puzzle.id = puzzle.id || `puzzle_${index + 1}`;
+    puzzle.text = puzzle.text || '';
+    puzzle.language = puzzle.language || 'ja';
+    puzzle.pronunciation = puzzle.pronunciation || '';
+    puzzle.post = Array.isArray(puzzle.post)
+      ? puzzle.post.map((ref) => ({
+        postId: Number(ref.postId) || '',
+        textIndex: Number(ref.textIndex) || 0,
+      }))
+      : [];
+    puzzle.relatedPuzzleIds = Array.isArray(puzzle.relatedPuzzleIds) ? puzzle.relatedPuzzleIds : [];
+    puzzle.notes = Array.isArray(puzzle.notes)
+      ? puzzle.notes.map((note, idx) => ({
+        id: note.id || `note_${idx + 1}`,
+        text: note.text || '',
+        createdAt: note.createdAt || puzzle.createdAt || Date.now(),
+      }))
+      : [];
+    puzzle.isSolved = Boolean(puzzle.isSolved);
+    puzzle.solvedAt = puzzle.isSolved ? puzzle.solvedAt || puzzle.updatedAt || puzzle.createdAt || null : null;
+    puzzle.meaning = puzzle.meaning || '';
+    puzzle.alternatives = Array.isArray(puzzle.alternatives) ? puzzle.alternatives : [];
+    puzzle.examples = Array.isArray(puzzle.examples) ? puzzle.examples : [];
+    puzzle.tags = Array.isArray(puzzle.tags) ? puzzle.tags : [];
+    puzzle.review = puzzle.review || defaultReview();
+    puzzle.createdAt = puzzle.createdAt || Date.now();
+    puzzle.updatedAt = puzzle.updatedAt || puzzle.createdAt;
+    puzzle.pinned = Boolean(puzzle.pinned);
+    puzzle.pinnedAt = puzzle.pinned ? puzzle.pinnedAt || puzzle.updatedAt : null;
   });
 }
 
@@ -629,6 +666,405 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   return fragment;
 }
 
+function createAccordion(title, content, { open = false } = {}) {
+  const details = document.createElement('details');
+  details.className = 'accordion';
+  details.open = open;
+  const summary = document.createElement('summary');
+  summary.textContent = title;
+  details.append(summary, content);
+  return details;
+}
+
+function parseTagInput(value) {
+  return value
+    .split(/[\s,、]+/)
+    .map((t) => t.replace(/^#/, '').trim())
+    .filter((t) => t.length > 0);
+}
+
+function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
+  const fragment = document.createDocumentFragment();
+  const container = document.createElement('div');
+  container.className = 'modal-body-section puzzle-form';
+  fragment.appendChild(container);
+
+  const base = targetPuzzle || {
+    id: '',
+    text: '',
+    language: 'ja',
+    pronunciation: '',
+    post: [{ postId: '', textIndex: 0 }],
+    relatedPuzzleIds: [],
+    notes: [{ id: `note_${Date.now()}`, text: '', createdAt: Date.now() }],
+    isSolved: false,
+    solvedAt: null,
+    meaning: '',
+    alternatives: [''],
+    examples: [''],
+    tags: [],
+  };
+
+  const tabNav = document.createElement('div');
+  tabNav.className = 'puzzle-form-tabs';
+  const tabButtons = {
+    basic: document.createElement('button'),
+    clue: document.createElement('button'),
+    solution: document.createElement('button'),
+  };
+  tabButtons.basic.textContent = '基本情報';
+  tabButtons.clue.textContent = '手がかり';
+  tabButtons.solution.textContent = '解決';
+  Object.values(tabButtons).forEach((btn) => btn.type = 'button');
+  tabNav.append(tabButtons.basic, tabButtons.clue, tabButtons.solution);
+
+  const sections = {
+    basic: document.createElement('div'),
+    clue: document.createElement('div'),
+    solution: document.createElement('div'),
+  };
+  Object.values(sections).forEach((sec) => sec.className = 'puzzle-form-section');
+
+  let activeTab = 'basic';
+  const setActiveTab = (key) => {
+    activeTab = key;
+    Object.entries(tabButtons).forEach(([k, btn]) => btn.classList.toggle('active', k === key));
+    Object.entries(sections).forEach(([k, sec]) => sec.classList.toggle('active', k === key));
+  };
+
+  const idRow = document.createElement('div');
+  idRow.className = 'form-row';
+  const idLabel = document.createElement('label');
+  idLabel.className = 'tag-label';
+  idLabel.textContent = 'Puzzle ID';
+  const idInput = document.createElement('input');
+  idInput.type = 'text';
+  idInput.className = 'tag-input';
+  idInput.placeholder = 'puzzle_0001';
+  idInput.value = base.id;
+  idRow.append(idLabel, idInput);
+
+  const textRow = document.createElement('div');
+  textRow.className = 'form-row';
+  const textLabel = document.createElement('label');
+  textLabel.className = 'tag-label';
+  textLabel.textContent = 'テキスト';
+  const textArea = document.createElement('textarea');
+  textArea.className = 'text-area';
+  textArea.value = base.text;
+  textArea.placeholder = '謎の表面テキストを入力';
+  textRow.append(textLabel, textArea);
+
+  const langRow = document.createElement('div');
+  langRow.className = 'language-select puzzle-language-row';
+  const langSelect = document.createElement('select');
+  langSelect.className = 'language-select-input';
+  langOptions.forEach((opt) => {
+    const option = document.createElement('option');
+    option.value = opt.value;
+    option.textContent = opt.label;
+    if (opt.value === base.language) option.selected = true;
+    langSelect.appendChild(option);
+  });
+  const speakBtn = document.createElement('button');
+  speakBtn.type = 'button';
+  speakBtn.className = 'text-action-button text-label-button';
+  speakBtn.innerHTML = `<img src="img/vol.svg" alt="" width="16" class="icon-inline"> ${getLanguageLabel(base.language)}`;
+  speakBtn.addEventListener('click', () => playSpeech(textArea.value, langSelect.value));
+  langSelect.addEventListener('change', () => {
+    speakBtn.innerHTML = `<img src="img/vol.svg" alt="" width="16" class="icon-inline"> ${getLanguageLabel(langSelect.value)}`;
+  });
+  const pronunciationInput = document.createElement('input');
+  pronunciationInput.type = 'text';
+  pronunciationInput.className = 'pronunciation-input';
+  pronunciationInput.placeholder = '発音（任意）';
+  pronunciationInput.value = base.pronunciation;
+  langRow.append(langSelect, speakBtn, pronunciationInput);
+
+  const solvedRow = document.createElement('div');
+  solvedRow.className = 'form-row solved-row';
+  const solvedLabel = document.createElement('label');
+  solvedLabel.className = 'tag-label';
+  solvedLabel.textContent = '解決';
+  const solvedToggle = document.createElement('button');
+  solvedToggle.type = 'button';
+  solvedToggle.className = 'toggle-button';
+  solvedRow.append(solvedLabel, solvedToggle);
+
+  const updateSolvedToggle = (flag) => {
+    solvedToggle.classList.toggle('active', flag);
+    solvedToggle.textContent = flag ? 'ON' : 'OFF';
+    sections.solution.classList.toggle('hidden', !flag);
+    tabButtons.solution.classList.toggle('hidden', !flag);
+    if (flag) setActiveTab('solution');
+    if (!flag && activeTab === 'solution') setActiveTab('basic');
+  };
+  solvedToggle.addEventListener('click', () => updateSolvedToggle(!solvedToggle.classList.contains('active')));
+  updateSolvedToggle(Boolean(base.isSolved));
+
+  sections.basic.append(idRow, textRow, langRow, solvedRow);
+
+  const postContainer = document.createElement('div');
+  postContainer.className = 'puzzle-multi-list';
+  const postLabel = document.createElement('div');
+  postLabel.className = 'tag-label';
+  postLabel.textContent = '手がかり（post / textIndex）';
+  const postList = document.createElement('div');
+  postList.className = 'puzzle-field-list';
+  const addPostBtn = document.createElement('button');
+  addPostBtn.type = 'button';
+  addPostBtn.className = 'add-text-button';
+  addPostBtn.textContent = '＋';
+
+  const createPostRow = (ref = { postId: '', textIndex: 0 }) => {
+    const row = document.createElement('div');
+    row.className = 'puzzle-ref-row';
+    const postInput = document.createElement('input');
+    postInput.type = 'number';
+    postInput.placeholder = 'postId';
+    postInput.className = 'tag-input';
+    postInput.value = ref.postId ?? '';
+    const indexInput = document.createElement('input');
+    indexInput.type = 'number';
+    indexInput.placeholder = 'textIndex';
+    indexInput.className = 'tag-input';
+    indexInput.value = ref.textIndex ?? 0;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'remove-text-btn';
+    remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
+    remove.addEventListener('click', () => {
+      if (postList.children.length > 1) row.remove();
+    });
+    row.append(postInput, indexInput, remove);
+    return row;
+  };
+
+  (base.post.length ? base.post : [{ postId: '', textIndex: 0 }]).forEach((ref) => postList.appendChild(createPostRow(ref)));
+  addPostBtn.addEventListener('click', () => postList.appendChild(createPostRow()));
+  postContainer.append(postLabel, postList, addPostBtn);
+
+  const relatedRow = document.createElement('div');
+  relatedRow.className = 'form-row';
+  const relatedLabel = document.createElement('label');
+  relatedLabel.className = 'tag-label';
+  relatedLabel.textContent = '関連する謎ID (relatedPuzzleIds)';
+  const relatedInput = document.createElement('input');
+  relatedInput.type = 'text';
+  relatedInput.className = 'tag-input';
+  relatedInput.placeholder = 'puzzle_0002, puzzle_0101';
+  relatedInput.value = (base.relatedPuzzleIds || []).join(', ');
+  relatedRow.append(relatedLabel, relatedInput);
+
+  const notesContainer = document.createElement('div');
+  notesContainer.className = 'puzzle-multi-list';
+  const notesLabel = document.createElement('div');
+  notesLabel.className = 'tag-label';
+  notesLabel.textContent = 'メモ (notes)';
+  const notesList = document.createElement('div');
+  notesList.className = 'puzzle-field-list';
+  const addNoteBtn = document.createElement('button');
+  addNoteBtn.type = 'button';
+  addNoteBtn.className = 'add-text-button';
+  addNoteBtn.textContent = '＋';
+
+  const createNoteArea = (note) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'puzzle-note-row';
+    const textarea = document.createElement('textarea');
+    textarea.className = 'text-area';
+    textarea.value = note?.text || '';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'remove-text-btn';
+    remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
+    remove.addEventListener('click', () => {
+      if (notesList.children.length > 1) wrapper.remove();
+    });
+    wrapper.append(textarea, remove);
+    return wrapper;
+  };
+  (base.notes.length ? base.notes : [{}]).forEach((note) => notesList.appendChild(createNoteArea(note)));
+  addNoteBtn.addEventListener('click', () => notesList.appendChild(createNoteArea({ text: '' })));
+  notesContainer.append(notesLabel, notesList, addNoteBtn);
+
+  sections.clue.append(postContainer, relatedRow, notesContainer);
+
+  const meaningRow = document.createElement('div');
+  meaningRow.className = 'form-row';
+  const meaningLabel = document.createElement('label');
+  meaningLabel.className = 'tag-label';
+  meaningLabel.textContent = '意味 (meaning)';
+  const meaningArea = document.createElement('textarea');
+  meaningArea.className = 'text-area';
+  meaningArea.placeholder = '解決した意味を入力';
+  meaningArea.value = base.meaning;
+  meaningRow.append(meaningLabel, meaningArea);
+
+  const createTextList = (title, values = ['']) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'puzzle-multi-list';
+    const label = document.createElement('div');
+    label.className = 'tag-label';
+    label.textContent = title;
+    const list = document.createElement('div');
+    list.className = 'puzzle-field-list';
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'add-text-button';
+    addBtn.textContent = '＋';
+
+    const createArea = (value = '') => {
+      const row = document.createElement('div');
+      row.className = 'puzzle-note-row';
+      const area = document.createElement('textarea');
+      area.className = 'text-area';
+      area.value = value;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'remove-text-btn';
+      remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
+      remove.addEventListener('click', () => {
+        if (list.children.length > 1) row.remove();
+      });
+      row.append(area, remove);
+      return row;
+    };
+
+    (values.length ? values : ['']).forEach((val) => list.appendChild(createArea(val)));
+    addBtn.addEventListener('click', () => list.appendChild(createArea('')));
+    wrap.append(label, list, addBtn);
+    return wrap;
+  };
+
+  const alternativesWrap = createTextList('言い換え (alternatives)', base.alternatives?.length ? base.alternatives : ['']);
+  const examplesWrap = createTextList('例文 (examples)', base.examples?.length ? base.examples : ['']);
+
+  const tagsRow = document.createElement('div');
+  tagsRow.className = 'form-row';
+  const tagsLabel = document.createElement('label');
+  tagsLabel.className = 'tag-label';
+  tagsLabel.textContent = 'タグ';
+  const tagsInput = document.createElement('input');
+  tagsInput.type = 'text';
+  tagsInput.className = 'tag-input';
+  tagsInput.placeholder = '#shopping #travel';
+  tagsInput.value = (base.tags || []).map((t) => `#${t}`).join(' ');
+  tagsRow.append(tagsLabel, tagsInput);
+
+  sections.solution.append(meaningRow, alternativesWrap, examplesWrap, tagsRow);
+
+  Object.entries(tabButtons).forEach(([key, btn]) => btn.addEventListener('click', () => setActiveTab(key)));
+  setActiveTab('basic');
+
+  container.append(tabNav, sections.basic, sections.clue, sections.solution);
+
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'modal-action-button';
+  cancelBtn.innerHTML = '<img src="img/delete.svg" alt="キャンセル" width="25" class="icon-inline">';
+  cancelBtn.addEventListener('click', closeModal);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'modal-action-button';
+  deleteBtn.hidden = !targetPuzzle;
+  deleteBtn.innerHTML = '<img src="img/delete.svg" alt="削除" width="25" class="icon-inline">';
+  deleteBtn.addEventListener('click', () => {
+    if (!targetPuzzle) return;
+    const confirmed = window.confirm('この謎カードを削除しますか？');
+    if (!confirmed) return;
+    state.data.puzzles = state.data.puzzles.filter((p) => p.id !== targetPuzzle.id);
+    persistData();
+    closeModal();
+    render();
+  });
+
+  const submitBtn = document.createElement('button');
+  submitBtn.type = 'button';
+  submitBtn.className = 'modal-primary-button primary-button modal-action-button';
+  submitBtn.textContent = mode === 'edit' ? 'Save' : 'Create';
+
+  submitBtn.addEventListener('click', () => {
+    const trimmedText = textArea.value.trim();
+    if (!trimmedText.length) {
+      alert('テキストを入力してください');
+      return;
+    }
+    const isSolved = solvedToggle.classList.contains('active');
+    const now = Date.now();
+    const tagValues = parseTagInput(tagsInput.value);
+
+    const postRefs = Array.from(postList.children).map((row) => ({
+      postId: Number(row.querySelector('input[type="number"]')?.value) || '',
+      textIndex: Number(row.querySelectorAll('input[type="number"]')[1]?.value) || 0,
+    })).filter((ref) => ref.postId !== '');
+
+    const noteTexts = Array.from(notesList.children).map((row, idx) => {
+      const text = row.querySelector('textarea')?.value.trim() || '';
+      return {
+        id: base.notes[idx]?.id || `note_${Date.now()}_${idx}`,
+        text,
+        createdAt: base.notes[idx]?.createdAt || now,
+      };
+    }).filter((note) => note.text.length > 0);
+
+    const collectList = (wrap) => Array.from(wrap.querySelectorAll('textarea')).map((el) => el.value.trim()).filter((v) => v.length);
+    const alternatives = collectList(alternativesWrap);
+    const examples = collectList(examplesWrap);
+    const relatedIds = Array.from(new Set(parseTagInput(relatedInput.value)));
+
+    if (mode === 'edit' && targetPuzzle) {
+      targetPuzzle.id = idInput.value.trim() || targetPuzzle.id;
+      targetPuzzle.text = trimmedText;
+      targetPuzzle.language = langSelect.value;
+      targetPuzzle.pronunciation = pronunciationInput.value.trim();
+      targetPuzzle.post = postRefs;
+      targetPuzzle.relatedPuzzleIds = relatedIds;
+      targetPuzzle.notes = noteTexts;
+      targetPuzzle.isSolved = isSolved;
+      targetPuzzle.solvedAt = isSolved ? targetPuzzle.solvedAt || now : null;
+      targetPuzzle.meaning = meaningArea.value.trim();
+      targetPuzzle.alternatives = alternatives;
+      targetPuzzle.examples = examples;
+      targetPuzzle.tags = tagValues;
+      targetPuzzle.updatedAt = now;
+    } else {
+      const puzzle = {
+        id: idInput.value.trim() || `puzzle_${nextId()}`,
+        text: trimmedText,
+        language: langSelect.value,
+        pronunciation: pronunciationInput.value.trim(),
+        post: postRefs,
+        relatedPuzzleIds: relatedIds,
+        notes: noteTexts,
+        isSolved,
+        solvedAt: isSolved ? now : null,
+        meaning: meaningArea.value.trim(),
+        alternatives,
+        examples,
+        tags: tagValues,
+        review: { intervalIndex: 0, nextReviewDate: null, history: [] },
+        createdAt: now,
+        updatedAt: now,
+        pinned: false,
+        pinnedAt: null,
+      };
+      state.data.puzzles.push(puzzle);
+    }
+
+    persistData();
+    closeModal();
+    render();
+  });
+
+  actions.append(cancelBtn, deleteBtn, submitBtn);
+  fragment.appendChild(actions);
+  return fragment;
+}
+
 function playSpeech(text, lang) {
   if (!text || lang === 'ja') return;
   const utter = new SpeechSynthesisUtterance(text);
@@ -659,6 +1095,10 @@ function collectTextEntries() {
   };
   pushEntries(state.data.posts);
   pushEntries(state.data.replies);
+  pushEntries((state.data.puzzles || []).map((puzzle) => ({
+    createdAt: puzzle.createdAt,
+    texts: [{ content: puzzle.text, language: puzzle.language }],
+  })));
   return entries;
 }
 
@@ -926,13 +1366,176 @@ function renderTimeline() {
   renderCardList(container, sorted, { emptyMessage: '投稿がありません。' });
 }
 
+function renderPuzzleTagList(tags = []) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tag-list';
+  tags.forEach((tag) => {
+    const chip = document.createElement('span');
+    chip.className = 'tag';
+    chip.textContent = `#${tag}`;
+    wrap.appendChild(chip);
+  });
+  return wrap;
+}
+
+function renderPuzzleCard(puzzle) {
+  const card = document.createElement('article');
+  card.className = 'card puzzle-card';
+
+  const meta = document.createElement('div');
+  meta.className = 'card-meta';
+  const created = document.createElement('span');
+  created.className = 'card-meta-item';
+  created.textContent = formatDate(puzzle.updatedAt || puzzle.createdAt);
+  const status = document.createElement('span');
+  status.className = puzzle.isSolved ? 'puzzle-status solved' : 'puzzle-status';
+  status.textContent = puzzle.isSolved ? '解決済' : '未解決';
+  meta.append(created, status);
+
+  const body = document.createElement('div');
+  body.className = 'card-body puzzle-body';
+
+  const basic = document.createElement('div');
+  basic.className = 'puzzle-basic';
+  const header = document.createElement('div');
+  header.className = 'puzzle-basic-header';
+  const langLabel = getLanguageLabel(puzzle.language);
+  const speakBtn = document.createElement('button');
+  speakBtn.type = 'button';
+  speakBtn.className = 'text-action-button text-label-button';
+  speakBtn.innerHTML = `<img src="img/vol.svg" alt="" width="16" class="icon-inline"> ${langLabel}`;
+  speakBtn.addEventListener('click', () => playSpeech(puzzle.text, puzzle.language));
+  const langText = document.createElement('span');
+  langText.className = 'puzzle-language-label';
+  langText.textContent = langLabel;
+  header.append(speakBtn, langText);
+
+  const textBlock = document.createElement('div');
+  textBlock.className = 'puzzle-text';
+  textBlock.textContent = puzzle.text;
+
+  basic.append(header, textBlock);
+  if (puzzle.pronunciation) {
+    const pron = document.createElement('div');
+    pron.className = 'pronunciation';
+    pron.textContent = puzzle.pronunciation;
+    basic.appendChild(pron);
+  }
+  body.appendChild(basic);
+
+  const clueContent = document.createElement('div');
+  clueContent.className = 'puzzle-section-content';
+  if (puzzle.post?.length) {
+    const list = document.createElement('ul');
+    list.className = 'puzzle-ref-list';
+    puzzle.post.forEach((ref) => {
+      const item = document.createElement('li');
+      item.textContent = `Post #${ref.postId} / textIndex ${ref.textIndex}`;
+      list.appendChild(item);
+    });
+    clueContent.appendChild(list);
+  } else {
+    const helper = document.createElement('div');
+    helper.className = 'helper';
+    helper.textContent = '手がかりがまだ登録されていません。';
+    clueContent.appendChild(helper);
+  }
+
+  if (puzzle.relatedPuzzleIds?.length) {
+    const related = document.createElement('div');
+    related.className = 'puzzle-chip-list';
+    puzzle.relatedPuzzleIds.forEach((id) => {
+      const chip = document.createElement('span');
+      chip.className = 'puzzle-chip';
+      chip.textContent = `#${id}`;
+      related.appendChild(chip);
+    });
+    clueContent.appendChild(related);
+  }
+
+  if (puzzle.notes?.length) {
+    const notesWrap = document.createElement('div');
+    notesWrap.className = 'puzzle-note-list';
+    puzzle.notes.forEach((note) => {
+      const noteEl = document.createElement('div');
+      noteEl.className = 'puzzle-note';
+      noteEl.textContent = note.text;
+      notesWrap.appendChild(noteEl);
+    });
+    clueContent.appendChild(notesWrap);
+  }
+  body.appendChild(createAccordion('手がかり', clueContent));
+
+  if (puzzle.isSolved) {
+    const solvedContent = document.createElement('div');
+    solvedContent.className = 'puzzle-section-content';
+
+    const meaning = document.createElement('div');
+    meaning.className = 'puzzle-meaning';
+    meaning.textContent = puzzle.meaning || '未入力';
+    solvedContent.appendChild(meaning);
+
+    const renderList = (title, values = []) => {
+      if (!values.length) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'puzzle-list-block';
+      const label = document.createElement('div');
+      label.className = 'puzzle-list-label';
+      label.textContent = title;
+      const list = document.createElement('ul');
+      values.forEach((val) => {
+        const item = document.createElement('li');
+        item.textContent = val;
+        list.appendChild(item);
+      });
+      wrap.append(label, list);
+      solvedContent.appendChild(wrap);
+    };
+    renderList('言い換え', puzzle.alternatives || []);
+    renderList('例文', puzzle.examples || []);
+
+    if (puzzle.tags?.length) {
+      const tags = renderPuzzleTagList(puzzle.tags);
+      solvedContent.appendChild(tags);
+    }
+
+    body.appendChild(createAccordion('解決', solvedContent));
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'card-actions';
+  const editBtn = document.createElement('button');
+  editBtn.className = 'card-action-button';
+  editBtn.innerHTML = '<img src="img/edit.svg" alt="編集" width="20" class="icon-inline">';
+  editBtn.addEventListener('click', () => openModal(buildPuzzleForm({ mode: 'edit', targetPuzzle: puzzle }), '謎カードを編集'));
+
+  const solvedBtn = document.createElement('button');
+  solvedBtn.className = 'card-action-button';
+  solvedBtn.textContent = puzzle.isSolved ? '未解決に戻す' : '解決ボタン';
+  solvedBtn.addEventListener('click', () => togglePuzzleSolved(puzzle.id));
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'card-action-button danger-action-button';
+  deleteBtn.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
+  deleteBtn.addEventListener('click', () => deletePuzzle(puzzle.id));
+
+  actions.append(editBtn, solvedBtn, deleteBtn);
+
+  card.append(meta, body, actions);
+  return card;
+}
+
 function renderPuzzles() {
   const container = document.getElementById('puzzle-list');
   if (!container) return;
-  const puzzles = state.data.posts
-    .filter((p) => Array.isArray(p.linkedPuzzleIds) && p.linkedPuzzleIds.length > 0)
-    .sort((a, b) => b.createdAt - a.createdAt);
-  renderCardList(container, puzzles, { emptyMessage: '謎の投稿がありません。' });
+  container.innerHTML = '';
+  const puzzles = [...(state.data.puzzles || [])]
+    .sort((a, b) => (b.pinned === a.pinned ? (b.updatedAt || 0) - (a.updatedAt || 0) : Number(b.pinned) - Number(a.pinned)));
+  if (!puzzles.length) {
+    container.innerHTML = '<div class="empty-state">謎の投稿がありません。</div>';
+    return;
+  }
+  puzzles.forEach((puzzle) => container.appendChild(renderPuzzleCard(puzzle)));
 }
 
 function renderImages() {
@@ -1216,6 +1819,16 @@ function deleteReply(id) {
   render();
 }
 
+function deletePuzzle(id) {
+  const target = state.data.puzzles.find((p) => p.id === id);
+  if (!target) return;
+  const confirmed = window.confirm('この謎カードを削除しますか？');
+  if (!confirmed) return;
+  state.data.puzzles = state.data.puzzles.filter((p) => p.id !== id);
+  persistData();
+  render();
+}
+
 function togglePinned(id) {
   const post = state.data.posts.find((p) => p.id === id);
   if (!post || post.isDeleted) return;
@@ -1233,6 +1846,16 @@ function toggleSearchPinnedFilter() {
   btn.setAttribute('aria-pressed', nextState);
   const icon = btn.querySelector('img');
   if (icon) icon.src = nextState ? 'img/hart_on.svg' : 'img/hart_off.svg';
+}
+
+function togglePuzzleSolved(id) {
+  const puzzle = state.data.puzzles.find((p) => p.id === id);
+  if (!puzzle) return;
+  puzzle.isSolved = !puzzle.isSolved;
+  puzzle.solvedAt = puzzle.isSolved ? puzzle.solvedAt || Date.now() : null;
+  puzzle.updatedAt = Date.now();
+  persistData();
+  render();
 }
 
 function isSearchPinnedFilterActive() {
@@ -1297,6 +1920,7 @@ function mergeImportedData(incoming) {
   const merged = { ...defaultData(), ...state.data };
 
   merged.posts = mergeCollections(merged.posts, incoming.posts || []);
+  merged.puzzles = mergeCollections(merged.puzzles, incoming.puzzles || []);
   merged.replies = mergeCollections(merged.replies, incoming.replies || []);
   merged.images = { ...merged.images };
   Object.entries(incoming.images || {}).forEach(([id, dataUrl]) => {
@@ -1316,6 +1940,7 @@ function mergeImportedData(incoming) {
   state.data = merged;
   ensureSpeakerFields(state.data);
   ensurePostFields(state.data);
+  ensurePuzzleFields(state.data);
   persistData();
   render();
 }
@@ -1427,7 +2052,13 @@ function setupTabs() {
 function setupGlobalEvents() {
   ['new-post-btn', 'fab-new-post', 'fab-new-puzzle'].forEach((id) => {
     const btn = document.getElementById(id);
-    if (btn) btn.addEventListener('click', () => openModal(buildPostForm({ mode: 'create' }), id === 'fab-new-puzzle' ? '新規Puzzle' : '新規投稿'));
+    if (btn) btn.addEventListener('click', () => {
+      if (id === 'fab-new-puzzle') {
+        openModal(buildPuzzleForm({ mode: 'create' }), '謎カードを作成');
+      } else {
+        openModal(buildPostForm({ mode: 'create' }), '新規投稿');
+      }
+    });
   });
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('image-close').addEventListener('click', closeImageViewer);
