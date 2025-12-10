@@ -737,12 +737,10 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   const idLabel = document.createElement('label');
   idLabel.className = 'tag-label';
   idLabel.textContent = 'Puzzle ID';
-  const idInput = document.createElement('input');
-  idInput.type = 'text';
-  idInput.className = 'tag-input';
-  idInput.placeholder = 'puzzle_0001';
-  idInput.value = base.id;
-  idRow.append(idLabel, idInput);
+  const idValue = document.createElement('div');
+  idValue.className = 'tag-input puzzle-id-display';
+  idValue.textContent = targetPuzzle?.id || '保存時に自動採番';
+  idRow.append(idLabel, idValue);
 
   const textRow = document.createElement('div');
   textRow.className = 'form-row';
@@ -1017,7 +1015,6 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     const relatedIds = Array.from(new Set(parseTagInput(relatedInput.value)));
 
     if (mode === 'edit' && targetPuzzle) {
-      targetPuzzle.id = idInput.value.trim() || targetPuzzle.id;
       targetPuzzle.text = trimmedText;
       targetPuzzle.language = langSelect.value;
       targetPuzzle.pronunciation = pronunciationInput.value.trim();
@@ -1033,7 +1030,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
       targetPuzzle.updatedAt = now;
     } else {
       const puzzle = {
-        id: idInput.value.trim() || `puzzle_${nextId()}`,
+        id: `puzzle_${nextId()}`,
         text: trimmedText,
         language: langSelect.value,
         pronunciation: pronunciationInput.value.trim(),
