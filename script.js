@@ -683,6 +683,25 @@ function parseTagInput(value) {
     .filter((t) => t.length > 0);
 }
 
+function formatPostRef(ref) {
+  if (!ref || ref.postId === '' || ref.postId === null || ref.postId === undefined) return '';
+  const postId = Number(ref.postId);
+  const textIndex = Number(ref.textIndex ?? 0);
+  if (!Number.isFinite(postId)) return '';
+  return `postId${postId}.textIndex${Number.isFinite(textIndex) ? textIndex : 0}`;
+}
+
+function parsePostRefInput(value) {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/postId(\d+)\s*\.\s*textIndex(\d+)/i);
+  if (!match) return null;
+  const postId = Number(match[1]);
+  const textIndex = Number(match[2]);
+  if (!Number.isFinite(postId) || !Number.isFinite(textIndex)) return null;
+  return { postId, textIndex };
+}
+
 function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   const fragment = document.createDocumentFragment();
   const container = document.createElement('div');
@@ -805,7 +824,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   postContainer.className = 'puzzle-multi-list';
   const postLabel = document.createElement('div');
   postLabel.className = 'tag-label';
-  postLabel.textContent = '手がかり（post / textIndex）';
+  postLabel.textContent = '手がかり（postId.textIndex）';
   const postList = document.createElement('div');
   postList.className = 'puzzle-field-list';
   const addPostBtn = document.createElement('button');
@@ -817,15 +836,10 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     const row = document.createElement('div');
     row.className = 'puzzle-ref-row';
     const postInput = document.createElement('input');
-    postInput.type = 'number';
-    postInput.placeholder = 'postId';
+    postInput.type = 'text';
+    postInput.placeholder = 'postId3.textIndex1';
     postInput.className = 'tag-input';
-    postInput.value = ref.postId ?? '';
-    const indexInput = document.createElement('input');
-    indexInput.type = 'number';
-    indexInput.placeholder = 'textIndex';
-    indexInput.className = 'tag-input';
-    indexInput.value = ref.textIndex ?? 0;
+    postInput.value = formatPostRef(ref);
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'remove-text-btn';
@@ -833,7 +847,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     remove.addEventListener('click', () => {
       if (postList.children.length > 1) row.remove();
     });
-    row.append(postInput, indexInput, remove);
+    row.append(postInput, remove);
     return row;
   };
 
@@ -995,10 +1009,9 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     const now = Date.now();
     const tagValues = parseTagInput(tagsInput.value);
 
-    const postRefs = Array.from(postList.children).map((row) => ({
-      postId: Number(row.querySelector('input[type="number"]')?.value) || '',
-      textIndex: Number(row.querySelectorAll('input[type="number"]')[1]?.value) || 0,
-    })).filter((ref) => ref.postId !== '');
+    const postRefs = Array.from(postList.children)
+      .map((row) => parsePostRefInput(row.querySelector('input[type="text"]')?.value || ''))
+      .filter(Boolean);
 
     const noteTexts = Array.from(notesList.children).map((row, idx) => {
       const text = row.querySelector('textarea')?.value.trim() || '';
@@ -1424,7 +1437,7 @@ function renderPuzzleCard(puzzle) {
     list.className = 'puzzle-ref-list';
     puzzle.post.forEach((ref) => {
       const item = document.createElement('li');
-      item.textContent = `Post #${ref.postId} / textIndex ${ref.textIndex}`;
+      item.textContent = formatPostRef(ref) || `Post #${ref.postId} / textIndex ${ref.textIndex}`;
       list.appendChild(item);
     });
     clueContent.appendChild(list);
@@ -1566,7 +1579,7 @@ function renderPostCard(post, options = {}) {
   if (post.isDeleted) {
     body.innerHTML = '<div class="text-block">このポストは削除されました</div>';
   } else {
-    post.texts.forEach((t) => {
+    post.texts.forEach((t, textIndex) => {
       const blockGroup = document.createElement('div');
       blockGroup.className = 'text-block-group';
       const speakerBadge = createSpeakerBadge(t.speaker_type || t.speaker || 'none');
@@ -1601,6 +1614,31 @@ function renderPostCard(post, options = {}) {
         pronunciation.textContent = t.pronunciation;
         block.appendChild(pronunciation);
       }
+
+      const referenceRow = document.createElement('div');
+      referenceRow.className = 'post-ref-row timeline-ref-row';
+      const refValue = formatPostRef({ postId: post.id, textIndex });
+      const refText = document.createElement('span');
+      refText.className = 'post-ref-text';
+      refText.textContent = refValue;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'copy-ref-button';
+      copyBtn.textContent = 'コピー';
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(refValue);
+          const original = copyBtn.textContent;
+          copyBtn.textContent = 'コピー済み';
+          setTimeout(() => { copyBtn.textContent = original; }, 1500);
+        } catch (error) {
+          alert('コピーに失敗しました');
+        }
+      });
+
+      referenceRow.append(refText, copyBtn);
+      block.appendChild(referenceRow);
       blockGroup.appendChild(block);
       body.appendChild(blockGroup);
     });
