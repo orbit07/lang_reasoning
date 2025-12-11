@@ -702,6 +702,51 @@ function parsePostRefInput(value) {
   return { postId, textIndex };
 }
 
+function focusElementWithHighlight(elementId) {
+  if (!elementId) return false;
+  const element = document.getElementById(elementId);
+  if (!element) return false;
+  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  element.classList.add('focus-highlight');
+  setTimeout(() => element.classList.remove('focus-highlight'), 1600);
+  return true;
+}
+
+function activateTab(tabName) {
+  const tabButtons = document.querySelectorAll('.tabs button[data-tab]');
+  tabButtons.forEach((btn) => {
+    const isActive = btn.dataset.tab === tabName;
+    btn.classList.toggle('active', isActive);
+  });
+  state.currentTab = tabName;
+  document.querySelectorAll('.tab-panel').forEach((panel) => {
+    panel.classList.toggle('active', panel.id === state.currentTab);
+  });
+  if (state.currentTab === 'dashboard') {
+    renderDashboard();
+  }
+}
+
+function navigateToPost(postId, textIndex = null) {
+  activateTab('timeline');
+  renderTimeline({ forceRenderAll: true });
+  requestAnimationFrame(() => {
+    const targetTextId = Number.isFinite(Number(textIndex)) ? `post-text-${postId}-${textIndex}` : null;
+    const found = focusElementWithHighlight(targetTextId) || focusElementWithHighlight(`post-card-${postId}`);
+    if (!found) console.warn('ターゲットのポストが見つかりませんでした', postId, textIndex);
+  });
+}
+
+function navigateToPuzzle(puzzleId) {
+  activateTab('puzzles');
+  renderPuzzles();
+  requestAnimationFrame(() => {
+    if (!focusElementWithHighlight(`puzzle-card-${puzzleId}`)) {
+      console.warn('ターゲットの謎カードが見つかりませんでした', puzzleId);
+    }
+  });
+}
+
 function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   const fragment = document.createDocumentFragment();
   const container = document.createElement('div');
@@ -1327,7 +1372,7 @@ function renderDashboard() {
 }
 
 
-function renderCardList(container, items, { emptyMessage, highlightImage = false } = {}) {
+function renderCardList(container, items, { emptyMessage, highlightImage = false, forceRenderAll = false } = {}) {
   if (container._infiniteObserver) {
     container._infiniteObserver.disconnect();
   }
@@ -1337,12 +1382,13 @@ function renderCardList(container, items, { emptyMessage, highlightImage = false
     return;
   }
 
-  const initialCount = 50;
-  const batchSize = 20;
+  const initialCount = forceRenderAll ? items.length : 50;
+  const batchSize = forceRenderAll ? items.length : 20;
   let index = 0;
   let observer = null;
 
   const addSentinel = () => {
+    if (forceRenderAll) return;
     const sentinel = document.createElement('div');
     sentinel.className = 'load-sentinel';
     container.appendChild(sentinel);
@@ -1356,24 +1402,27 @@ function renderCardList(container, items, { emptyMessage, highlightImage = false
     if (index < items.length) addSentinel();
   };
 
-  observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        observer.unobserve(entry.target);
-        entry.target.remove();
-        renderBatch(batchSize);
-      }
-    });
-  }, { root: null, rootMargin: '200px' });
+  observer = forceRenderAll
+    ? null
+    : new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          observer.unobserve(entry.target);
+          entry.target.remove();
+          renderBatch(batchSize);
+        }
+      });
+    }, { root: null, rootMargin: '200px' });
 
   renderBatch(initialCount);
   container._infiniteObserver = observer;
 }
 
-function renderTimeline() {
+function renderTimeline(options = {}) {
+  const { forceRenderAll = false } = options;
   const container = document.getElementById('timeline-list');
   const sorted = [...state.data.posts].sort((a, b) => b.createdAt - a.createdAt);
-  renderCardList(container, sorted, { emptyMessage: '投稿がありません。' });
+  renderCardList(container, sorted, { emptyMessage: '投稿がありません。', forceRenderAll });
 }
 
 function renderPuzzleTagList(tags = []) {
@@ -1391,6 +1440,7 @@ function renderPuzzleTagList(tags = []) {
 function renderPuzzleCard(puzzle) {
   const card = document.createElement('article');
   card.className = 'card puzzle-card';
+  card.id = `puzzle-card-${puzzle.id}`;
 
   const meta = document.createElement('div');
   meta.className = 'card-meta';
@@ -1437,7 +1487,19 @@ function renderPuzzleCard(puzzle) {
     list.className = 'puzzle-ref-list';
     puzzle.post.forEach((ref) => {
       const item = document.createElement('li');
-      item.textContent = formatPostRef(ref) || `Post #${ref.postId} / textIndex ${ref.textIndex}`;
+      const label = formatPostRef(ref) || `Post #${ref.postId} / textIndex ${ref.textIndex}`;
+      const postId = Number(ref.postId);
+      const textIndex = Number(ref.textIndex ?? 0);
+      if (Number.isFinite(postId)) {
+        const link = document.createElement('button');
+        link.type = 'button';
+        link.className = 'puzzle-ref-link';
+        link.textContent = label;
+        link.addEventListener('click', () => navigateToPost(postId, textIndex));
+        item.appendChild(link);
+      } else {
+        item.textContent = label;
+      }
       list.appendChild(item);
     });
     clueContent.appendChild(list);
@@ -1563,6 +1625,7 @@ function renderImages() {
 function renderPostCard(post, options = {}) {
   const template = document.getElementById('post-template');
   const node = template.content.firstElementChild.cloneNode(true);
+  node.id = `post-card-${post.id}`;
   const meta = node.querySelector('.card-meta');
   const body = node.querySelector('.card-body');
   const tagsEl = node.querySelector('.tag-list');
@@ -1582,6 +1645,7 @@ function renderPostCard(post, options = {}) {
     post.texts.forEach((t, textIndex) => {
       const blockGroup = document.createElement('div');
       blockGroup.className = 'text-block-group';
+      blockGroup.id = `post-text-${post.id}-${textIndex}`;
       const speakerBadge = createSpeakerBadge(t.speaker_type || t.speaker || 'none');
       blockGroup.appendChild(speakerBadge);
 
@@ -1698,9 +1762,11 @@ function renderPostCard(post, options = {}) {
       const list = document.createElement('div');
       list.className = 'puzzle-chip-list';
       post.linkedPuzzleIds.forEach((id) => {
-        const chip = document.createElement('span');
-        chip.className = 'puzzle-chip';
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'puzzle-chip puzzle-chip-link';
         chip.textContent = `#${id}`;
+        chip.addEventListener('click', () => navigateToPuzzle(id));
         list.appendChild(chip);
       });
       puzzleRow.appendChild(list);
@@ -2086,15 +2152,7 @@ function setupTabs() {
   const tabButtons = document.querySelectorAll('.tabs button[data-tab]');
   tabButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
-      tabButtons.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.currentTab = btn.dataset.tab;
-      document.querySelectorAll('.tab-panel').forEach((panel) => {
-        panel.classList.toggle('active', panel.id === state.currentTab);
-      });
-      if (state.currentTab === 'dashboard') {
-        renderDashboard();
-      }
+      activateTab(btn.dataset.tab);
     });
   });
 }
@@ -2159,6 +2217,7 @@ function registerServiceWorker() {
 function init() {
   loadData();
   setupTabs();
+  activateTab(state.currentTab);
   setupGlobalEvents();
   registerServiceWorker();
   render();

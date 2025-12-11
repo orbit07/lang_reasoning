@@ -110,6 +110,15 @@ button {
 .card:first-of-type {
   border-top: none;
 }
+.focus-highlight {
+  animation: focusGlow 1.6s ease;
+  box-shadow: 0 0 0 3px #dce9ff;
+  border-radius: 14px;
+}
+@keyframes focusGlow {
+  from { box-shadow: 0 0 0 6px #c8ddff; }
+  to { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
 
 .card-meta { font-size: 1.2rem; color: var(--muted); display: flex; gap: 5px; align-items: center; }
 .card-meta-item { font-size: 1.2rem; display: flex; gap: 5px; }
@@ -684,6 +693,13 @@ button {
   font-weight: 700;
   color: #2f6fe4;
 }
+.puzzle-chip-link {
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.puzzle-chip-link:hover {
+  background: #dce9ff;
+}
 
 .fab-button {
   position: fixed;
@@ -926,6 +942,16 @@ button {
 }
 
 .puzzle-ref-list { padding-left: 18px; color: var(--muted); }
+.puzzle-ref-link {
+  background: none;
+  border: none;
+  color: #2f6fe4;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.puzzle-ref-link:hover { text-decoration: underline; }
 
 .puzzle-note-list { display: flex; flex-direction: column; gap: 6px; }
 .puzzle-note {
