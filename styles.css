@@ -815,9 +815,43 @@ button {
 
 .puzzle-ref-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
+}
+
+.post-ref-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.timeline-ref-row {
+  margin-top: 8px;
+}
+
+.post-ref-text {
+  font-family: 'Roboto Mono', Menlo, Consolas, monospace;
+  padding: 4px 8px;
+  background: #f4f7fb;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.copy-ref-button {
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #334e68;
+  cursor: pointer;
+}
+
+.copy-ref-button:hover {
+  background: #f4f7fb;
 }
 
 .puzzle-id-display {
