@@ -719,11 +719,19 @@ function focusElementWithHighlight(elementId) {
   return true;
 }
 
+function updateTabButtonIcon(button, isActive) {
+  const icon = button.querySelector('.tab-icon');
+  if (!icon) return;
+  const nextSrc = isActive ? button.dataset.iconOn : button.dataset.iconOff;
+  if (nextSrc) icon.src = nextSrc;
+}
+
 function activateTab(tabName) {
   const tabButtons = document.querySelectorAll('.tabs button[data-tab]');
   tabButtons.forEach((btn) => {
     const isActive = btn.dataset.tab === tabName;
     btn.classList.toggle('active', isActive);
+    updateTabButtonIcon(btn, isActive);
   });
   state.currentTab = tabName;
   document.querySelectorAll('.tab-panel').forEach((panel) => {
