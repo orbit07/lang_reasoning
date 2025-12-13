@@ -435,6 +435,9 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   fragment.appendChild(container);
   const tagSection = document.createElement('div');
   tagSection.className = 'modal-tag-section';
+  const tagLabel = document.createElement('label');
+  tagLabel.className = 'tag-label';
+  tagLabel.textContent = 'タグ';
   const tagInput = document.createElement('input');
   tagInput.type = 'text';
   tagInput.placeholder = '#タグ をスペースまたはカンマ区切りで入力';
@@ -442,7 +445,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   if (targetPost?.tags?.length) {
     tagInput.value = targetPost.tags.map((t) => `#${t}`).join(' ');
   }
-  tagSection.append(tagInput);
+  tagSection.append(tagLabel, tagInput);
   const textAreaContainer = document.createElement('div');
   textAreaContainer.id = 'text-block-container';
   textAreaContainer.classList.add('text-block-container');
@@ -1833,9 +1836,20 @@ function renderPostCard(post, options = {}) {
   });
   tagsEl.style.display = post.tags.length ? '' : 'none';
 
+  const extra = document.createElement('div');
+  extra.className = 'post-extra';
+
+  if (post.tags.length) {
+    const tagRow = document.createElement('div');
+    tagRow.className = 'post-extra-row';
+    const tagLabel = document.createElement('span');
+    tagLabel.className = 'post-extra-label';
+    tagLabel.innerHTML = '<img src="img/tag.svg" alt="" width="20" class="icon-inline">';
+    tagRow.append(tagLabel, tagsEl);
+    extra.appendChild(tagRow);
+  }
+
   if (!post.isDeleted) {
-    const extra = document.createElement('div');
-    extra.className = 'post-extra';
     if (post.sourceUrl) {
       const sourceRow = document.createElement('div');
       sourceRow.className = 'post-extra-row';
@@ -1872,9 +1886,10 @@ function renderPostCard(post, options = {}) {
       puzzleRow.appendChild(list);
       extra.appendChild(puzzleRow);
     }
-    if (extra.childElementCount) {
-      body.appendChild(extra);
-    }
+  }
+
+  if (extra.childElementCount) {
+    body.appendChild(extra);
   }
 
   actions.innerHTML = '';
