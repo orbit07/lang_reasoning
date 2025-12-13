@@ -882,44 +882,6 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     tags: [],
   };
 
-  const tabNav = document.createElement('div');
-  tabNav.className = 'puzzle-form-tabs';
-  const tabButtons = {
-    basic: document.createElement('button'),
-    clue: document.createElement('button'),
-    solution: document.createElement('button'),
-  };
-  tabButtons.basic.textContent = '基本情報';
-  tabButtons.clue.textContent = '手がかり';
-  tabButtons.solution.textContent = '解決';
-  Object.values(tabButtons).forEach((btn) => btn.type = 'button');
-  const visibleTabs = base.isSolved ? ['basic', 'clue', 'solution'] : ['basic', 'clue'];
-  tabNav.append(tabButtons.basic, tabButtons.clue);
-  if (visibleTabs.includes('solution')) tabNav.append(tabButtons.solution);
-
-  const sections = {
-    basic: document.createElement('div'),
-    clue: document.createElement('div'),
-    solution: document.createElement('div'),
-  };
-  Object.values(sections).forEach((sec) => sec.className = 'puzzle-form-section');
-
-  let activeTab = 'basic';
-  const setActiveTab = (key) => {
-    const safeKey = visibleTabs.includes(key) ? key : visibleTabs[0];
-    activeTab = safeKey;
-    Object.entries(tabButtons).forEach(([k, btn]) => {
-      const isVisible = visibleTabs.includes(k);
-      btn.style.display = isVisible ? '' : 'none';
-      btn.classList.toggle('active', isVisible && k === safeKey);
-    });
-    Object.entries(sections).forEach(([k, sec]) => {
-      const isVisible = visibleTabs.includes(k);
-      sec.classList.toggle('hidden', !isVisible);
-      sec.classList.toggle('active', isVisible && k === safeKey);
-    });
-  };
-
   const updateRemoveButtons = (listEl) => {
     const buttons = Array.from(listEl.querySelectorAll('.remove-text-btn'));
     const shouldDisable = buttons.length <= 1;
@@ -928,53 +890,31 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     });
   };
 
-  const textRow = document.createElement('div');
-  textRow.className = 'form-row';
-  const textArea = document.createElement('textarea');
-  textArea.className = 'text-area';
-  textArea.value = base.text;
-  textArea.placeholder = '謎の表面テキストを入力';
-  textRow.append(textArea);
+  const textContainer = document.createElement('div');
+  textContainer.id = 'puzzle-text-block-container';
+  textContainer.className = 'text-block-container';
+  const textBlock = createTextBlockInput(
+    base.text,
+    base.language,
+    base.pronunciation,
+    base.speaker || base.speaker_type || 'none',
+    true,
+  );
+  const removeBtn = textBlock.querySelector('.remove-text-btn');
+  if (removeBtn) removeBtn.disabled = true;
+  textContainer.appendChild(textBlock);
 
-  const pronunciationRow = document.createElement('div');
-  pronunciationRow.className = 'form-row';
-  const pronunciationInput = document.createElement('input');
-  pronunciationInput.type = 'text';
-  pronunciationInput.className = 'pronunciation-input';
-  pronunciationInput.placeholder = '発音（任意）';
-  pronunciationInput.value = base.pronunciation;
-  pronunciationRow.append(pronunciationInput);
-
-  const langRow = document.createElement('div');
-  langRow.className = 'language-select puzzle-language-row';
-  const langSelect = document.createElement('select');
-  langSelect.className = 'language-select-input';
-  langOptions.forEach((opt) => {
-    const option = document.createElement('option');
-    option.value = opt.value;
-    option.textContent = opt.label;
-    if (opt.value === base.language) option.selected = true;
-    langSelect.appendChild(option);
-  });
-  const speakBtn = document.createElement('button');
-  speakBtn.type = 'button';
-  speakBtn.className = 'text-action-button text-label-button';
-  speakBtn.innerHTML = `<img src="img/vol.svg" alt="" width="16" class="icon-inline"> ${getLanguageLabel(base.language)}`;
-  speakBtn.addEventListener('click', () => playSpeech(textArea.value, langSelect.value));
-  langSelect.addEventListener('change', () => {
-    speakBtn.innerHTML = `<img src="img/vol.svg" alt="" width="16" class="icon-inline"> ${getLanguageLabel(langSelect.value)}`;
-  });
-  langRow.append(langSelect, speakBtn);
-
-  const speakerRow = document.createElement('div');
-  speakerRow.className = 'form-row';
-  const speakerLabel = document.createElement('div');
-  speakerLabel.className = 'tag-label';
-  speakerLabel.textContent = '話者';
-  const speakerSelect = createSpeakerSelector(base.speaker || base.speaker_type || 'none');
-  speakerRow.append(speakerLabel, speakerSelect);
-
-  sections.basic.append(textRow, pronunciationRow, langRow, speakerRow);
+  const tagsSection = document.createElement('div');
+  tagsSection.className = 'modal-tag-section';
+  const tagsLabel = document.createElement('label');
+  tagsLabel.className = 'tag-label';
+  tagsLabel.textContent = 'タグ';
+  const tagsInput = document.createElement('input');
+  tagsInput.type = 'text';
+  tagsInput.className = 'tag-input';
+  tagsInput.placeholder = '#タグ をスペースまたはカンマ区切りで入力';
+  tagsInput.value = (base.tags || []).map((t) => `#${t}`).join(' ');
+  tagsSection.append(tagsLabel, tagsInput);
 
   const postContainer = document.createElement('div');
   postContainer.className = 'puzzle-multi-list';
@@ -1073,7 +1013,9 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   });
   notesContainer.append(notesLabel, notesList, addNoteBtn);
 
-  sections.clue.append(notesContainer, postContainer, relatedRow);
+  const clueSection = document.createElement('div');
+  clueSection.className = 'puzzle-form-section active';
+  clueSection.append(notesContainer, postContainer, relatedRow);
 
   const meaningRow = document.createElement('div');
   meaningRow.className = 'form-row';
@@ -1135,25 +1077,14 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   const examplesWrap = createTextList('例文 (examples)', base.examples?.length ? base.examples : ['']);
 
   const tagsRow = document.createElement('div');
-  tagsRow.className = 'form-row';
-  const tagsLabel = document.createElement('label');
-  tagsLabel.className = 'tag-label';
-  tagsLabel.textContent = 'タグ';
-  const tagsInput = document.createElement('input');
-  tagsInput.type = 'text';
-  tagsInput.className = 'tag-input';
-  tagsInput.placeholder = '#shopping #travel';
-  tagsInput.value = (base.tags || []).map((t) => `#${t}`).join(' ');
-  tagsRow.append(tagsLabel, tagsInput);
+  const solutionSection = document.createElement('div');
+  solutionSection.className = 'puzzle-form-section';
+  if (base.isSolved) solutionSection.classList.add('active');
+  solutionSection.append(meaningRow, alternativesWrap, examplesWrap);
 
-  sections.solution.append(meaningRow, alternativesWrap, examplesWrap);
-  sections.basic.append(tagsRow);
-
-  visibleTabs.forEach((key) => tabButtons[key].addEventListener('click', () => setActiveTab(key)));
-  setActiveTab(visibleTabs[0]);
-
-  container.append(sections.basic, sections.clue, sections.solution);
-  fragment.append(tabNav, container);
+  container.append(textContainer, tagsSection, clueSection);
+  if (base.isSolved) container.append(solutionSection);
+  fragment.append(container);
 
   const actions = document.createElement('div');
   actions.className = 'modal-actions puzzle-modal-actions';
@@ -1169,14 +1100,19 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   submitBtn.textContent = mode === 'edit' ? 'Save' : 'Create';
 
   submitBtn.addEventListener('click', () => {
-    const trimmedText = textArea.value.trim();
+    const textWrapper = textContainer.querySelector('.text-area-wrapper');
+    const textArea = textWrapper?.querySelector('textarea');
+    const langSelect = textWrapper?.querySelector('.language-select-input');
+    const pronunciationInput = textWrapper?.querySelector('.pronunciation-input');
+    const speakerValue = textWrapper?.querySelector('.speaker-select-value')?.value || 'none';
+
+    const trimmedText = textArea?.value.trim() || '';
     if (!trimmedText.length) {
       alert('テキストを入力してください');
       return;
     }
     const now = Date.now();
     const tagValues = parseTagInput(tagsInput.value);
-    const speakerValue = speakerSelect.querySelector('.speaker-select-value')?.value || 'none';
 
     const postRefs = Array.from(postList.children)
       .map((row) => parsePostRefInput(row.querySelector('input[type="text"]')?.value || ''))
