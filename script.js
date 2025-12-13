@@ -882,7 +882,9 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   tabButtons.clue.textContent = '手がかり';
   tabButtons.solution.textContent = '解決';
   Object.values(tabButtons).forEach((btn) => btn.type = 'button');
-  tabNav.append(tabButtons.basic, tabButtons.clue, tabButtons.solution);
+  const visibleTabs = base.isSolved ? ['basic', 'clue', 'solution'] : ['basic', 'clue'];
+  tabNav.append(tabButtons.basic, tabButtons.clue);
+  if (visibleTabs.includes('solution')) tabNav.append(tabButtons.solution);
 
   const sections = {
     basic: document.createElement('div'),
@@ -893,20 +895,19 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
 
   let activeTab = 'basic';
   const setActiveTab = (key) => {
-    activeTab = key;
-    Object.entries(tabButtons).forEach(([k, btn]) => btn.classList.toggle('active', k === key));
-    Object.entries(sections).forEach(([k, sec]) => sec.classList.toggle('active', k === key));
+    const safeKey = visibleTabs.includes(key) ? key : visibleTabs[0];
+    activeTab = safeKey;
+    Object.entries(tabButtons).forEach(([k, btn]) => {
+      const isVisible = visibleTabs.includes(k);
+      btn.style.display = isVisible ? '' : 'none';
+      btn.classList.toggle('active', isVisible && k === safeKey);
+    });
+    Object.entries(sections).forEach(([k, sec]) => {
+      const isVisible = visibleTabs.includes(k);
+      sec.classList.toggle('hidden', !isVisible);
+      sec.classList.toggle('active', isVisible && k === safeKey);
+    });
   };
-
-  const idRow = document.createElement('div');
-  idRow.className = 'form-row';
-  const idLabel = document.createElement('label');
-  idLabel.className = 'tag-label';
-  idLabel.textContent = 'Puzzle ID';
-  const idValue = document.createElement('div');
-  idValue.className = 'tag-input puzzle-id-display';
-  idValue.textContent = targetPuzzle?.id || '保存時に自動採番';
-  idRow.append(idLabel, idValue);
 
   const textRow = document.createElement('div');
   textRow.className = 'form-row';
@@ -945,28 +946,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   pronunciationInput.value = base.pronunciation;
   langRow.append(langSelect, speakBtn, pronunciationInput);
 
-  const solvedRow = document.createElement('div');
-  solvedRow.className = 'form-row solved-row';
-  const solvedLabel = document.createElement('label');
-  solvedLabel.className = 'tag-label';
-  solvedLabel.textContent = '解決';
-  const solvedToggle = document.createElement('button');
-  solvedToggle.type = 'button';
-  solvedToggle.className = 'toggle-button';
-  solvedRow.append(solvedLabel, solvedToggle);
-
-  const updateSolvedToggle = (flag) => {
-    solvedToggle.classList.toggle('active', flag);
-    solvedToggle.textContent = flag ? 'ON' : 'OFF';
-    sections.solution.classList.toggle('hidden', !flag);
-    tabButtons.solution.classList.toggle('hidden', !flag);
-    if (flag) setActiveTab('solution');
-    if (!flag && activeTab === 'solution') setActiveTab('basic');
-  };
-  solvedToggle.addEventListener('click', () => updateSolvedToggle(!solvedToggle.classList.contains('active')));
-  updateSolvedToggle(Boolean(base.isSolved));
-
-  sections.basic.append(idRow, textRow, langRow, solvedRow);
+  sections.basic.append(textRow, langRow);
 
   const postContainer = document.createElement('div');
   postContainer.className = 'puzzle-multi-list';
@@ -1113,8 +1093,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
 
   sections.solution.append(meaningRow, alternativesWrap, examplesWrap, tagsRow);
 
-  Object.entries(tabButtons).forEach(([key, btn]) => btn.addEventListener('click', () => setActiveTab(key)));
-  setActiveTab('basic');
+  visibleTabs.forEach((key) => tabButtons[key].addEventListener('click', () => setActiveTab(key)));
+  setActiveTab(visibleTabs[0]);
 
   container.append(sections.basic, sections.clue, sections.solution);
   fragment.append(tabNav, container);
@@ -1153,7 +1133,6 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
       alert('テキストを入力してください');
       return;
     }
-    const isSolved = solvedToggle.classList.contains('active');
     const now = Date.now();
     const tagValues = parseTagInput(tagsInput.value);
 
@@ -1170,10 +1149,11 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
       };
     }).filter((note) => note.text.length > 0);
 
+    const relatedIds = Array.from(new Set(parseTagInput(relatedInput.value)));
     const collectList = (wrap) => Array.from(wrap.querySelectorAll('textarea')).map((el) => el.value.trim()).filter((v) => v.length);
     const alternatives = collectList(alternativesWrap);
     const examples = collectList(examplesWrap);
-    const relatedIds = Array.from(new Set(parseTagInput(relatedInput.value)));
+    const meaning = meaningArea.value.trim();
 
     if (mode === 'edit' && targetPuzzle) {
       targetPuzzle.text = trimmedText;
@@ -1182,9 +1162,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
       targetPuzzle.post = postRefs;
       targetPuzzle.relatedPuzzleIds = relatedIds;
       targetPuzzle.notes = noteTexts;
-      targetPuzzle.isSolved = isSolved;
-      targetPuzzle.solvedAt = isSolved ? targetPuzzle.solvedAt || now : null;
-      targetPuzzle.meaning = meaningArea.value.trim();
+      targetPuzzle.meaning = meaning;
       targetPuzzle.alternatives = alternatives;
       targetPuzzle.examples = examples;
       targetPuzzle.tags = tagValues;
@@ -1199,9 +1177,9 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
         post: postRefs,
         relatedPuzzleIds: relatedIds,
         notes: noteTexts,
-        isSolved,
-        solvedAt: isSolved ? now : null,
-        meaning: meaningArea.value.trim(),
+        isSolved: false,
+        solvedAt: null,
+        meaning,
         alternatives,
         examples,
         tags: tagValues,
