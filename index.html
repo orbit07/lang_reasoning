@@ -63,11 +63,23 @@
 
     <section id="search" class="tab-panel search-panel">
       <div class="search-box">
-        <input type="text" id="search-input" placeholder="キーワード または #タグ で検索" class="search-input" />
-        <button id="search-pin-btn" class="icon-toggle-button" aria-pressed="false" aria-label="ピン留めフィルター">
-          <img src="img/hart_off.svg" alt="ピン留めフィルター" width="24" height="24" class="icon-inline" />
-        </button>
-        <button id="search-btn" class="primary-button search-button">Search</button>
+        <div class="search-row search-row-top">
+          <select id="search-type-select" class="search-select" aria-label="検索対象">
+            <option value="all">全て</option>
+            <option value="clue">手がかり</option>
+            <option value="puzzle">謎</option>
+          </select>
+          <div class="search-filter-group">
+            <button id="search-pin-btn" class="icon-toggle-button" aria-pressed="false" aria-label="ピン留めフィルター">
+              <img src="img/hart_off.svg" alt="ピン留めフィルター" width="24" height="24" class="icon-inline" />
+            </button>
+            <button id="search-solved-btn" class="filter-toggle-button" aria-pressed="false">解決済み</button>
+          </div>
+        </div>
+        <div class="search-row search-row-bottom">
+          <input type="text" id="search-input" placeholder="キーワード または #タグ で検索" class="search-input" />
+          <button id="search-btn" class="primary-button search-button">Search</button>
+        </div>
       </div>
       <div id="search-results" class="card-list"></div>
     </section>
