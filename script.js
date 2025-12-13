@@ -1584,26 +1584,43 @@ function renderPuzzleCard(puzzle) {
   const body = document.createElement('div');
   body.className = 'card-body puzzle-body';
 
-  const basic = document.createElement('div');
-  basic.className = 'puzzle-basic';
+  const textGroup = document.createElement('div');
+  textGroup.className = 'text-block-group';
+  textGroup.id = `puzzle-text-${puzzle.id}`;
   const speakerBadge = createSpeakerBadge(puzzle.speaker_type || puzzle.speaker || 'none');
-  basic.appendChild(speakerBadge);
-
-  const basicContent = document.createElement('div');
-  basicContent.className = 'puzzle-basic-content';
-  const header = document.createElement('div');
-  header.className = 'puzzle-basic-header';
-  const langLabel = getLanguageLabel(puzzle.language);
-  const speakBtn = document.createElement('button');
-  speakBtn.type = 'button';
-  speakBtn.className = 'text-action-button text-label-button';
-  speakBtn.innerHTML = `<img src="img/vol.svg" alt="" width="16" class="icon-inline"> ${langLabel}`;
-  speakBtn.addEventListener('click', () => playSpeech(puzzle.text, puzzle.language));
-  header.append(speakBtn);
+  textGroup.appendChild(speakerBadge);
 
   const textBlock = document.createElement('div');
-  textBlock.className = 'puzzle-text';
-  textBlock.textContent = puzzle.text;
+  textBlock.className = 'text-block';
+
+  const label = document.createElement('div');
+  label.className = 'text-label';
+  const langLabel = getLanguageLabel(puzzle.language);
+  const option = langOptions.find((opt) => opt.value === puzzle.language);
+  if (option?.speakable) {
+    const speakBtn = document.createElement('button');
+    speakBtn.type = 'button';
+    speakBtn.className = 'text-action-button text-label-button';
+    speakBtn.innerHTML = `<img src="img/vol.svg" alt="" width="16" class="icon-inline"> ${langLabel}`;
+    speakBtn.addEventListener('click', () => playSpeech(puzzle.text, puzzle.language));
+    label.append(speakBtn);
+  } else {
+    const langText = document.createElement('span');
+    langText.textContent = langLabel;
+    label.append(langText);
+  }
+
+  const content = document.createElement('div');
+  content.className = 'text-content';
+  content.textContent = puzzle.text;
+
+  textBlock.append(label, content);
+  if (puzzle.pronunciation) {
+    const pron = document.createElement('div');
+    pron.className = 'pronunciation';
+    pron.textContent = puzzle.pronunciation;
+    textBlock.appendChild(pron);
+  }
 
   const referenceRow = document.createElement('div');
   referenceRow.className = 'post-ref-row timeline-ref-row';
@@ -1627,16 +1644,9 @@ function renderPuzzleCard(puzzle) {
   });
 
   referenceRow.append(refText, copyBtn);
-  basicContent.append(header, textBlock);
-  if (puzzle.pronunciation) {
-    const pron = document.createElement('div');
-    pron.className = 'pronunciation';
-    pron.textContent = puzzle.pronunciation;
-    basicContent.appendChild(pron);
-  }
-  basicContent.appendChild(referenceRow);
-  basic.appendChild(basicContent);
-  body.appendChild(basic);
+  textBlock.appendChild(referenceRow);
+  textGroup.appendChild(textBlock);
+  body.appendChild(textGroup);
 
   const clueContent = document.createElement('div');
   clueContent.className = 'puzzle-section-content';
