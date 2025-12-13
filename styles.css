@@ -591,6 +591,10 @@ button {
   text-align: center;
   font-weight: 600;
 }
+.modal-description {
+  color: var(--muted);
+  line-height: 1.5;
+}
 
 .image-actions {
   display: grid;
@@ -717,6 +721,13 @@ button {
   font-weight: 600;
   text-align: center;
   z-index: 9;
+}
+.fab-secondary {
+  bottom: 155px;
+  width: 48px;
+  height: 48px;
+  font-size: 2.4rem;
+  background: #2f6fe4;
 }
 .text-block-container {
   display: flex;

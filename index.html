@@ -17,18 +17,19 @@
       <button data-tab="timeline" class="tab-button tab-button-timeline active">Timeline</button>
       <button data-tab="puzzles" class="tab-button tab-button-puzzles">Puzzles</button>
       <button data-tab="search" class="tab-button tab-button-search">Search</button>
-      <button data-tab="import" class="tab-button tab-button-import">Import</button>
     </nav>
   </header>
 
   <main class="main-container">
     <section id="timeline" class="tab-panel active">
       <div id="timeline-list" class="card-list"></div>
+      <button id="fab-import-posts" class="fab-button fab-secondary" aria-label="投稿のインポート/エクスポート">⇅</button>
       <button id="fab-new-post" class="fab-button" aria-label="新規投稿">＋</button>
     </section>
 
     <section id="puzzles" class="tab-panel">
       <div id="puzzle-list" class="card-list"></div>
+      <button id="fab-import-puzzles" class="fab-button fab-secondary" aria-label="謎カードのインポート/エクスポート">⇅</button>
       <button id="fab-new-puzzle" class="fab-button" aria-label="謎の新規投稿">＋</button>
     </section>
 
@@ -53,22 +54,6 @@
       </div>
     </section>
 
-    <section id="import" class="tab-panel">
-      <div class="import-export-panel">
-        <div class="header-actions">
-          <label class="file-button import-button">
-            <input type="file" id="import-input" accept="application/json" class="file-input" />
-            インポート
-          </label>
-          <button id="export-btn" class="export-button">エクスポート</button>
-        </div>
-        <div class="import-textarea-block">
-          <p class="helper">JSONを貼り付けて差分インポートできます。</p>
-          <textarea id="import-textarea" class="import-textarea" placeholder="ここにJSONを貼り付けてください"></textarea>
-          <button id="import-text-btn" class="import-text-btn primary-button">テキストからインポート</button>
-        </div>
-      </div>
-    </section>
   </main>
 
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true">

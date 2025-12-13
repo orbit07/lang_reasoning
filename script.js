@@ -2132,27 +2132,159 @@ function importConversationMessages(messages) {
   render();
 }
 
-function exportData() {
-  const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: 'application/json' });
+function exportJson(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'lang-sns-backup.json';
+  a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-function importData(file) {
-  if (!file) return;
+function importJsonFromFile(file, onTextImport) {
+  if (!file || !onTextImport) return;
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      importFromJsonString(reader.result);
+      onTextImport(reader.result);
     } catch (e) {
+      console.error('Failed to import file JSON', e);
       alert('JSONの読み込みに失敗しました');
     }
   };
   reader.readAsText(file);
+}
+
+function buildImportExportModal({ description, placeholder, onFileImport, onTextImport, onExport }) {
+  const container = document.createElement('div');
+  container.className = 'import-export-panel';
+
+  if (description) {
+    const descriptionNode = document.createElement('p');
+    descriptionNode.className = 'modal-description';
+    descriptionNode.textContent = description;
+    container.appendChild(descriptionNode);
+  }
+
+  const headerActions = document.createElement('div');
+  headerActions.className = 'header-actions';
+
+  const fileLabel = document.createElement('label');
+  fileLabel.className = 'file-button import-button';
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'application/json';
+  fileInput.className = 'file-input';
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) onFileImport?.(file);
+    e.target.value = '';
+  });
+  fileLabel.append(fileInput, 'インポート');
+
+  const exportButton = document.createElement('button');
+  exportButton.className = 'export-button';
+  exportButton.textContent = 'エクスポート';
+  exportButton.addEventListener('click', () => onExport?.());
+
+  headerActions.append(fileLabel, exportButton);
+
+  const textareaBlock = document.createElement('div');
+  textareaBlock.className = 'import-textarea-block';
+  const helper = document.createElement('p');
+  helper.className = 'helper';
+  helper.textContent = 'JSONを貼り付けて差分インポートできます。';
+  const textarea = document.createElement('textarea');
+  textarea.className = 'import-textarea';
+  textarea.placeholder = placeholder || 'ここにJSONを貼り付けてください';
+  const importTextBtn = document.createElement('button');
+  importTextBtn.className = 'import-text-btn primary-button';
+  importTextBtn.textContent = 'テキストからインポート';
+  importTextBtn.addEventListener('click', () => {
+    const text = textarea.value.trim();
+    if (!text) {
+      alert('JSONを入力してください');
+      return;
+    }
+    try {
+      onTextImport?.(text);
+      textarea.value = '';
+    } catch (err) {
+      console.error('Failed to import text JSON', err);
+      alert('JSONの読み込みに失敗しました');
+    }
+  });
+
+  textareaBlock.append(helper, textarea, importTextBtn);
+  container.append(headerActions, textareaBlock);
+  return container;
+}
+
+function getTimelineExportData() {
+  return {
+    version: DATA_VERSION,
+    posts: state.data.posts,
+    replies: state.data.replies,
+    images: state.data.images,
+    lastId: state.data.lastId,
+  };
+}
+
+function getPuzzleExportData() {
+  return {
+    version: DATA_VERSION,
+    puzzles: state.data.puzzles,
+    lastId: state.data.lastId,
+  };
+}
+
+function importTimelineJson(text) {
+  const parsed = JSON.parse(text);
+  if (Array.isArray(parsed)) {
+    importConversationMessages(parsed);
+    return;
+  }
+  mergeImportedData(parsed);
+}
+
+function importPuzzleJson(text) {
+  const parsed = JSON.parse(text);
+  if (Array.isArray(parsed)) {
+    mergeImportedData({ puzzles: parsed });
+    return;
+  }
+  if (parsed && typeof parsed === 'object') {
+    if (Array.isArray(parsed.puzzles)) {
+      mergeImportedData({ ...parsed, puzzles: parsed.puzzles });
+      return;
+    }
+    mergeImportedData(parsed);
+    return;
+  }
+  throw new Error('invalid puzzle data');
+}
+
+function openTimelineDataModal() {
+  const modalBody = buildImportExportModal({
+    description: 'タイムラインのバックアップや他端末への移行に、JSONファイルを活用できます。',
+    placeholder: '投稿データや会話データのJSONを貼り付けてください',
+    onFileImport: (file) => importJsonFromFile(file, importTimelineJson),
+    onTextImport: importTimelineJson,
+    onExport: () => exportJson(getTimelineExportData(), 'lang-timeline.json'),
+  });
+  openModal(modalBody, '投稿のインポート/エクスポート');
+}
+
+function openPuzzleDataModal() {
+  const modalBody = buildImportExportModal({
+    description: '謎カードのデータをJSONでエクスポート・インポートできます。',
+    placeholder: '謎カードのJSONを貼り付けてください',
+    onFileImport: (file) => importJsonFromFile(file, importPuzzleJson),
+    onTextImport: importPuzzleJson,
+    onExport: () => exportJson(getPuzzleExportData(), 'lang-puzzles.json'),
+  });
+  openModal(modalBody, '謎カードのインポート/エクスポート');
 }
 
 function setupTabs() {
@@ -2179,33 +2311,10 @@ function setupGlobalEvents() {
   document.getElementById('image-close').addEventListener('click', closeImageViewer);
   document.getElementById('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
   document.getElementById('image-viewer').addEventListener('click', (e) => { if (e.target.id === 'image-viewer') closeImageViewer(); });
-  document.getElementById('export-btn').addEventListener('click', exportData);
-  document.getElementById('import-input').addEventListener('change', (e) => {
-    importData(e.target.files[0]);
-    e.target.value = '';
-  });
-  const importTextBtn = document.getElementById('import-text-btn');
-  if (importTextBtn) {
-    importTextBtn.addEventListener('click', () => {
-      const textarea = document.getElementById('import-textarea');
-      const text = textarea?.value.trim();
-      if (!text) {
-        alert('JSONを入力してください');
-        return;
-      }
-      try {
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed)) {
-          importConversationMessages(parsed);
-        } else {
-          mergeImportedData(parsed);
-        }
-        if (textarea) textarea.value = '';
-      } catch (err) {
-        alert('JSONの読み込みに失敗しました');
-      }
-    });
-  }
+  const postImportFab = document.getElementById('fab-import-posts');
+  if (postImportFab) postImportFab.addEventListener('click', openTimelineDataModal);
+  const puzzleImportFab = document.getElementById('fab-import-puzzles');
+  if (puzzleImportFab) puzzleImportFab.addEventListener('click', openPuzzleDataModal);
   document.getElementById('search-btn').addEventListener('click', runSearch);
   const likeFilterBtn = document.getElementById('search-pin-btn');
   if (likeFilterBtn) likeFilterBtn.addEventListener('click', () => { toggleSearchPinnedFilter(); runSearch(); });
