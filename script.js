@@ -1833,6 +1833,7 @@ function renderPostCard(post, options = {}) {
   const rels = state.data.replies
     .filter((r) => r.postId === post.id)
     .sort((a, b) => a.createdAt - b.createdAt);
+  let replyTextOffset = post.texts.length;
   repliesWrap.innerHTML = '';
   rels.forEach((reply) => {
     const card = document.createElement('div');
@@ -1846,9 +1847,11 @@ function renderPostCard(post, options = {}) {
     metaRow.appendChild(metaText);
     const bodyRow = document.createElement('div');
     bodyRow.className = 'card-body';
-    reply.texts.forEach((t) => {
+    reply.texts.forEach((t, textIndex) => {
+      const refIndex = replyTextOffset + textIndex;
       const blockGroup = document.createElement('div');
       blockGroup.className = 'text-block-group';
+      blockGroup.id = `post-text-${post.id}-${refIndex}`;
       const speakerBadge = createSpeakerBadge(t.speaker_type || t.speaker || 'none');
       blockGroup.appendChild(speakerBadge);
 
@@ -1880,6 +1883,32 @@ function renderPostCard(post, options = {}) {
         pronunciation.textContent = t.pronunciation;
         block.appendChild(pronunciation);
       }
+
+      const referenceRow = document.createElement('div');
+      referenceRow.className = 'post-ref-row timeline-ref-row';
+      const refValue = formatPostRef({ postId: post.id, textIndex: refIndex });
+      const refText = document.createElement('span');
+      refText.className = 'post-ref-text';
+      refText.textContent = refValue;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'copy-ref-button';
+      copyBtn.innerHTML = '<img src="img/copy_off.svg" alt="" width="24" class="icon-inline">';
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(refValue);
+          copyBtn.innerHTML = '<img src="img/copy_on.svg" alt="" width="24" class="icon-inline">';
+          setTimeout(() => {
+            copyBtn.innerHTML = '<img src="img/copy_off.svg" alt="" width="24" class="icon-inline">';
+          }, 1500);
+        } catch (error) {
+          alert('コピーに失敗しました');
+        }
+      });
+
+      referenceRow.append(refText, copyBtn);
+      block.appendChild(referenceRow);
       blockGroup.appendChild(block);
       bodyRow.appendChild(blockGroup);
     });
@@ -1906,6 +1935,8 @@ function renderPostCard(post, options = {}) {
 
     card.append(metaRow, bodyRow, actionsRow);
     repliesWrap.appendChild(card);
+
+    replyTextOffset += reply.texts.length;
   });
   repliesWrap.style.display = rels.length ? '' : 'none';
 
