@@ -917,6 +917,15 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   textArea.placeholder = '謎の表面テキストを入力';
   textRow.append(textArea);
 
+  const pronunciationRow = document.createElement('div');
+  pronunciationRow.className = 'form-row';
+  const pronunciationInput = document.createElement('input');
+  pronunciationInput.type = 'text';
+  pronunciationInput.className = 'pronunciation-input';
+  pronunciationInput.placeholder = '発音（任意）';
+  pronunciationInput.value = base.pronunciation;
+  pronunciationRow.append(pronunciationInput);
+
   const langRow = document.createElement('div');
   langRow.className = 'language-select puzzle-language-row';
   const langSelect = document.createElement('select');
@@ -936,14 +945,9 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   langSelect.addEventListener('change', () => {
     speakBtn.innerHTML = `<img src="img/vol.svg" alt="" width="16" class="icon-inline"> ${getLanguageLabel(langSelect.value)}`;
   });
-  const pronunciationInput = document.createElement('input');
-  pronunciationInput.type = 'text';
-  pronunciationInput.className = 'pronunciation-input';
-  pronunciationInput.placeholder = '発音（任意）';
-  pronunciationInput.value = base.pronunciation;
-  langRow.append(langSelect, speakBtn, pronunciationInput);
+  langRow.append(langSelect, speakBtn);
 
-  sections.basic.append(textRow, langRow);
+  sections.basic.append(textRow, pronunciationRow, langRow);
 
   const postContainer = document.createElement('div');
   postContainer.className = 'puzzle-multi-list';
@@ -1088,7 +1092,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   tagsInput.value = (base.tags || []).map((t) => `#${t}`).join(' ');
   tagsRow.append(tagsLabel, tagsInput);
 
-  sections.solution.append(meaningRow, alternativesWrap, examplesWrap, tagsRow);
+  sections.solution.append(meaningRow, alternativesWrap, examplesWrap);
+  sections.basic.append(tagsRow);
 
   visibleTabs.forEach((key) => tabButtons[key].addEventListener('click', () => setActiveTab(key)));
   setActiveTab(visibleTabs[0]);
@@ -1103,21 +1108,6 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   cancelBtn.className = 'modal-action-button';
   cancelBtn.innerHTML = '<img src="img/delete.svg" alt="キャンセル" width="25" class="icon-inline">';
   cancelBtn.addEventListener('click', closeModal);
-
-  const deleteBtn = document.createElement('button');
-  deleteBtn.type = 'button';
-  deleteBtn.className = 'modal-action-button';
-  deleteBtn.hidden = !targetPuzzle;
-  deleteBtn.innerHTML = '<img src="img/delete.svg" alt="削除" width="25" class="icon-inline">';
-  deleteBtn.addEventListener('click', () => {
-    if (!targetPuzzle) return;
-    const confirmed = window.confirm('この謎カードを削除しますか？');
-    if (!confirmed) return;
-    state.data.puzzles = state.data.puzzles.filter((p) => p.id !== targetPuzzle.id);
-    persistData();
-    closeModal();
-    render();
-  });
 
   const submitBtn = document.createElement('button');
   submitBtn.type = 'button';
@@ -1194,7 +1184,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     render();
   });
 
-  actions.append(cancelBtn, deleteBtn, submitBtn);
+  actions.append(cancelBtn, submitBtn);
   fragment.appendChild(actions);
   return fragment;
 }
