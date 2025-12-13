@@ -604,6 +604,7 @@ button {
   padding: 10px 20px;
   background: rgba(255, 255, 255, .5);
 }
+.modal-actions.puzzle-modal-actions { grid-template-columns: auto 1fr; }
 .modal-tag-section {
   display: flex;
   flex-direction: column;
@@ -1025,11 +1026,15 @@ button {
   background: #fff;
   border-radius: 12px;
   padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 10px;
+  row-gap: 6px;
+  align-items: flex-start;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
+
+.puzzle-basic-content { display: flex; flex-direction: column; gap: 6px; }
 
 .puzzle-basic-header {
   display: flex;

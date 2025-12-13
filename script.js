@@ -204,6 +204,8 @@ function ensurePuzzleFields(data) {
     puzzle.id = puzzle.id || `puzzle_${index + 1}`;
     puzzle.text = puzzle.text || '';
     puzzle.language = puzzle.language || 'ja';
+    puzzle.speaker = puzzle.speaker || puzzle.speaker_type || 'none';
+    puzzle.speaker_type = puzzle.speaker;
     puzzle.pronunciation = puzzle.pronunciation || '';
     puzzle.post = Array.isArray(puzzle.post)
       ? puzzle.post.map((ref) => {
@@ -867,6 +869,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     id: '',
     text: '',
     language: 'ja',
+    speaker: 'none',
     pronunciation: '',
     post: [{ postId: '', refId: '', textIndex: 0 }],
     relatedPuzzleIds: [],
@@ -917,6 +920,14 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     });
   };
 
+  const updateRemoveButtons = (listEl) => {
+    const buttons = Array.from(listEl.querySelectorAll('.remove-text-btn'));
+    const shouldDisable = buttons.length <= 1;
+    buttons.forEach((btn) => {
+      btn.disabled = shouldDisable;
+    });
+  };
+
   const textRow = document.createElement('div');
   textRow.className = 'form-row';
   const textArea = document.createElement('textarea');
@@ -955,7 +966,15 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   });
   langRow.append(langSelect, speakBtn);
 
-  sections.basic.append(textRow, pronunciationRow, langRow);
+  const speakerRow = document.createElement('div');
+  speakerRow.className = 'form-row';
+  const speakerLabel = document.createElement('div');
+  speakerLabel.className = 'tag-label';
+  speakerLabel.textContent = '話者';
+  const speakerSelect = createSpeakerSelector(base.speaker || base.speaker_type || 'none');
+  speakerRow.append(speakerLabel, speakerSelect);
+
+  sections.basic.append(textRow, pronunciationRow, langRow, speakerRow);
 
   const postContainer = document.createElement('div');
   postContainer.className = 'puzzle-multi-list';
@@ -968,6 +987,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   addPostBtn.type = 'button';
   addPostBtn.className = 'add-text-button';
   addPostBtn.textContent = '＋';
+
+  const refreshPostRemoveState = () => updateRemoveButtons(postList);
 
   const createPostRow = (ref = { postId: '', refId: '', textIndex: 0 }) => {
     const row = document.createElement('div');
@@ -982,14 +1003,21 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     remove.className = 'remove-text-btn';
     remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
     remove.addEventListener('click', () => {
-      if (postList.children.length > 1) row.remove();
+      if (postList.children.length > 1) {
+        row.remove();
+        refreshPostRemoveState();
+      }
     });
     row.append(postInput, remove);
     return row;
   };
 
   (base.post.length ? base.post : [{ postId: '', textIndex: 0 }]).forEach((ref) => postList.appendChild(createPostRow(ref)));
-  addPostBtn.addEventListener('click', () => postList.appendChild(createPostRow()));
+  refreshPostRemoveState();
+  addPostBtn.addEventListener('click', () => {
+    postList.appendChild(createPostRow());
+    refreshPostRemoveState();
+  });
   postContainer.append(postLabel, postList, addPostBtn);
 
   const relatedRow = document.createElement('div');
@@ -1016,6 +1044,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   addNoteBtn.className = 'add-text-button';
   addNoteBtn.textContent = '＋';
 
+  const refreshNoteRemoveState = () => updateRemoveButtons(notesList);
+
   const createNoteArea = (note) => {
     const wrapper = document.createElement('div');
     wrapper.className = 'puzzle-note-row';
@@ -1027,16 +1057,23 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     remove.className = 'remove-text-btn';
     remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
     remove.addEventListener('click', () => {
-      if (notesList.children.length > 1) wrapper.remove();
+      if (notesList.children.length > 1) {
+        wrapper.remove();
+        refreshNoteRemoveState();
+      }
     });
     wrapper.append(textarea, remove);
     return wrapper;
   };
   (base.notes.length ? base.notes : [{}]).forEach((note) => notesList.appendChild(createNoteArea(note)));
-  addNoteBtn.addEventListener('click', () => notesList.appendChild(createNoteArea({ text: '' })));
+  refreshNoteRemoveState();
+  addNoteBtn.addEventListener('click', () => {
+    notesList.appendChild(createNoteArea({ text: '' }));
+    refreshNoteRemoveState();
+  });
   notesContainer.append(notesLabel, notesList, addNoteBtn);
 
-  sections.clue.append(postContainer, relatedRow, notesContainer);
+  sections.clue.append(notesContainer, postContainer, relatedRow);
 
   const meaningRow = document.createElement('div');
   meaningRow.className = 'form-row';
@@ -1062,6 +1099,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     addBtn.className = 'add-text-button';
     addBtn.textContent = '＋';
 
+    const refreshListState = () => updateRemoveButtons(list);
+
     const createArea = (value = '') => {
       const row = document.createElement('div');
       row.className = 'puzzle-note-row';
@@ -1073,14 +1112,21 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
       remove.className = 'remove-text-btn';
       remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
       remove.addEventListener('click', () => {
-        if (list.children.length > 1) row.remove();
+        if (list.children.length > 1) {
+          row.remove();
+          refreshListState();
+        }
       });
       row.append(area, remove);
       return row;
     };
 
     (values.length ? values : ['']).forEach((val) => list.appendChild(createArea(val)));
-    addBtn.addEventListener('click', () => list.appendChild(createArea('')));
+    refreshListState();
+    addBtn.addEventListener('click', () => {
+      list.appendChild(createArea(''));
+      refreshListState();
+    });
     wrap.append(label, list, addBtn);
     return wrap;
   };
@@ -1110,7 +1156,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   fragment.append(tabNav, container);
 
   const actions = document.createElement('div');
-  actions.className = 'modal-actions';
+  actions.className = 'modal-actions puzzle-modal-actions';
   const cancelBtn = document.createElement('button');
   cancelBtn.type = 'button';
   cancelBtn.className = 'modal-action-button';
@@ -1130,6 +1176,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     }
     const now = Date.now();
     const tagValues = parseTagInput(tagsInput.value);
+    const speakerValue = speakerSelect.querySelector('.speaker-select-value')?.value || 'none';
 
     const postRefs = Array.from(postList.children)
       .map((row) => parsePostRefInput(row.querySelector('input[type="text"]')?.value || ''))
@@ -1153,6 +1200,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     if (mode === 'edit' && targetPuzzle) {
       targetPuzzle.text = trimmedText;
       targetPuzzle.language = langSelect.value;
+      targetPuzzle.speaker = speakerValue;
+      targetPuzzle.speaker_type = speakerValue;
       targetPuzzle.pronunciation = pronunciationInput.value.trim();
       targetPuzzle.post = postRefs;
       targetPuzzle.relatedPuzzleIds = relatedIds;
@@ -1168,6 +1217,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
         refId: generateStableId('puzzle'),
         text: trimmedText,
         language: langSelect.value,
+        speaker: speakerValue,
+        speaker_type: speakerValue,
         pronunciation: pronunciationInput.value.trim(),
         post: postRefs,
         relatedPuzzleIds: relatedIds,
@@ -1535,6 +1586,11 @@ function renderPuzzleCard(puzzle) {
 
   const basic = document.createElement('div');
   basic.className = 'puzzle-basic';
+  const speakerBadge = createSpeakerBadge(puzzle.speaker_type || puzzle.speaker || 'none');
+  basic.appendChild(speakerBadge);
+
+  const basicContent = document.createElement('div');
+  basicContent.className = 'puzzle-basic-content';
   const header = document.createElement('div');
   header.className = 'puzzle-basic-header';
   const langLabel = getLanguageLabel(puzzle.language);
@@ -1571,18 +1627,32 @@ function renderPuzzleCard(puzzle) {
   });
 
   referenceRow.append(refText, copyBtn);
-
-  basic.append(header, textBlock, referenceRow);
+  basicContent.append(header, textBlock);
   if (puzzle.pronunciation) {
     const pron = document.createElement('div');
     pron.className = 'pronunciation';
     pron.textContent = puzzle.pronunciation;
-    basic.appendChild(pron);
+    basicContent.appendChild(pron);
   }
+  basicContent.appendChild(referenceRow);
+  basic.appendChild(basicContent);
   body.appendChild(basic);
 
   const clueContent = document.createElement('div');
   clueContent.className = 'puzzle-section-content';
+  const clueParts = [];
+  if (puzzle.notes?.length) {
+    const notesWrap = document.createElement('div');
+    notesWrap.className = 'puzzle-note-list';
+    puzzle.notes.forEach((note) => {
+      const noteEl = document.createElement('div');
+      noteEl.className = 'puzzle-note';
+      noteEl.textContent = note.text;
+      notesWrap.appendChild(noteEl);
+    });
+    clueParts.push(notesWrap);
+  }
+
   if (puzzle.post?.length) {
     const list = document.createElement('ul');
     list.className = 'puzzle-ref-list';
@@ -1602,12 +1672,7 @@ function renderPuzzleCard(puzzle) {
       }
       list.appendChild(item);
     });
-    clueContent.appendChild(list);
-  } else {
-    const helper = document.createElement('div');
-    helper.className = 'helper';
-    helper.textContent = '手がかりがまだ登録されていません。';
-    clueContent.appendChild(helper);
+    clueParts.push(list);
   }
 
   if (puzzle.relatedPuzzleIds?.length) {
@@ -1619,19 +1684,16 @@ function renderPuzzleCard(puzzle) {
       chip.textContent = `#${id}`;
       related.appendChild(chip);
     });
-    clueContent.appendChild(related);
+    clueParts.push(related);
   }
 
-  if (puzzle.notes?.length) {
-    const notesWrap = document.createElement('div');
-    notesWrap.className = 'puzzle-note-list';
-    puzzle.notes.forEach((note) => {
-      const noteEl = document.createElement('div');
-      noteEl.className = 'puzzle-note';
-      noteEl.textContent = note.text;
-      notesWrap.appendChild(noteEl);
-    });
-    clueContent.appendChild(notesWrap);
+  if (clueParts.length === 0) {
+    const helper = document.createElement('div');
+    helper.className = 'helper';
+    helper.textContent = '手がかりがまだ登録されていません。';
+    clueContent.appendChild(helper);
+  } else {
+    clueParts.forEach((part) => clueContent.appendChild(part));
   }
   body.appendChild(createAccordion('手がかり', clueContent));
 
