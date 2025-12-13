@@ -429,8 +429,10 @@ button {
 
 .filter-toggle-button {
   height: 40px;
-  padding: 0 12px;
-  font-weight: 600;
+  width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .primary-button { 
@@ -618,7 +620,7 @@ button {
   width: 100%;
   padding: 8px 10px;
   border: 1px solid #57a8ff;
-  border-radius: 10px;
+  border-radius: 5px;
 }
 .modal-action-button {
   height: 25px;
@@ -950,14 +952,14 @@ button {
   position: absolute;
   background: #fff;
   border-radius: 9999px;
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
 }
 
 .puzzle-ref-row .remove-text-btn {
   position: static;
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
 }
 
 .puzzle-ref-row {
@@ -979,7 +981,7 @@ button {
   font-family: 'Roboto Mono', Menlo, Consolas, monospace;
   padding: 4px 8px;
   background: #f4f7fb;
-  border-radius: 8px;
+  border-radius: 5px;
   border: 1px solid var(--border);
 }
 
@@ -994,7 +996,7 @@ button {
 
 .accordion {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 

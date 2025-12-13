@@ -941,7 +941,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'remove-text-btn';
-    remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
+    remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="25" class="icon-inline">';
     remove.addEventListener('click', () => {
       if (postList.children.length > 1) {
         row.remove();
@@ -995,7 +995,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'remove-text-btn';
-    remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
+    remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="25" class="icon-inline">';
     remove.addEventListener('click', () => {
       if (notesList.children.length > 1) {
         wrapper.remove();
@@ -1021,7 +1021,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   meaningRow.className = 'form-row';
   const meaningLabel = document.createElement('label');
   meaningLabel.className = 'tag-label';
-  meaningLabel.textContent = '意味 (meaning)';
+  meaningLabel.textContent = '意味';
   const meaningArea = document.createElement('textarea');
   meaningArea.className = 'text-area';
   meaningArea.placeholder = '解決した意味を入力';
@@ -1052,7 +1052,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'remove-text-btn';
-      remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="20" class="icon-inline">';
+      remove.innerHTML = '<img src="img/delete.svg" alt="削除" width="25" class="icon-inline">';
       remove.addEventListener('click', () => {
         if (list.children.length > 1) {
           row.remove();
@@ -1073,8 +1073,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     return wrap;
   };
 
-  const alternativesWrap = createTextList('言い換え (alternatives)', base.alternatives?.length ? base.alternatives : ['']);
-  const examplesWrap = createTextList('例文 (examples)', base.examples?.length ? base.examples : ['']);
+  const alternativesWrap = createTextList('言い換え', base.alternatives?.length ? base.alternatives : ['']);
+  const examplesWrap = createTextList('例文', base.examples?.length ? base.examples : ['']);
 
   const tagsRow = document.createElement('div');
   const solutionSection = document.createElement('div');
