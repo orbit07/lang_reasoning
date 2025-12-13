@@ -752,6 +752,15 @@ function navigateToPost(postId, textIndex = null) {
   });
 }
 
+function navigateToReply(postId, replyId) {
+  activateTab('timeline');
+  renderTimeline({ forceRenderAll: true });
+  requestAnimationFrame(() => {
+    const found = focusElementWithHighlight(`reply-card-${replyId}`) || focusElementWithHighlight(`post-card-${postId}`);
+    if (!found) console.warn('ターゲットのリプライが見つかりませんでした', postId, replyId);
+  });
+}
+
 function navigateToPuzzle(puzzleId) {
   activateTab('puzzles');
   renderPuzzles();
@@ -1832,6 +1841,7 @@ function renderPostCard(post, options = {}) {
   rels.forEach((reply) => {
     const card = document.createElement('div');
     card.className = 'reply-card';
+    card.id = `reply-card-${reply.id}`;
     const metaRow = document.createElement('div');
     metaRow.className = 'card-meta';
     const metaText = document.createElement('span');
@@ -2010,6 +2020,52 @@ function isSearchSolvedFilterActive() {
   return document.getElementById('search-solved-btn')?.classList.contains('active');
 }
 
+function textMatchesAnyTerm(text, lowerTerms) {
+  if (!lowerTerms.length) return true;
+  const normalized = (text ?? '').toString().toLowerCase();
+  return lowerTerms.some((term) => normalized.includes(term));
+}
+
+function buildExcerpt(text, terms, radius = 10) {
+  if (!text) return '';
+  if (!terms.length) return text;
+  const original = (text ?? '').toString();
+  const lower = original.toLowerCase();
+  const matchedTerm = terms.find((term) => lower.includes(term));
+  if (!matchedTerm) return original;
+  const index = lower.indexOf(matchedTerm);
+  const start = Math.max(0, index - radius);
+  const end = Math.min(original.length, index + matchedTerm.length + radius);
+  const prefix = start > 0 ? '...' : '';
+  const suffix = end < original.length ? '...' : '';
+  return `${prefix}${original.slice(start, end)}${suffix}`;
+}
+
+function getPostPrimaryText(post) {
+  return post?.texts?.[0]?.content || '';
+}
+
+function createSearchResultCard(item) {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = item.detail ? 'search-result-card two-line' : 'search-result-card';
+  card.addEventListener('click', item.onClick);
+
+  const main = document.createElement('div');
+  main.className = 'search-result-main';
+  main.textContent = item.main || '';
+  card.appendChild(main);
+
+  if (item.detail) {
+    const detail = document.createElement('div');
+    detail.className = 'search-result-detail';
+    detail.textContent = item.detail;
+    card.appendChild(detail);
+  }
+
+  return card;
+}
+
 function runSearch() {
   const query = document.getElementById('search-input').value.trim();
   const searchType = document.getElementById('search-type-select')?.value || 'all';
@@ -2024,6 +2080,9 @@ function runSearch() {
     if (t.startsWith('#')) tagFilters.push(t.slice(1).toLowerCase());
     else textTerms.push(t.toLowerCase());
   });
+
+  const hasTextTerms = textTerms.length > 0;
+  const hasAnyQuery = hasTextTerms || tagFilters.length > 0;
 
   const matchesTextTerms = (fields, lowerTerms) => {
     if (!lowerTerms.length) return true;
@@ -2052,7 +2111,47 @@ function runSearch() {
           ...(post.tags || []),
         ];
         if (!matchesTextTerms(fields, textTerms)) return;
-        results.push({ type: 'post', value: post });
+
+        if (hasTextTerms) {
+          (post.texts || []).forEach((t, textIndex) => {
+            if (!textMatchesAnyTerm(t.content, textTerms)) return;
+            results.push({
+              parentType: 'post',
+              parent: post,
+              main: t.content,
+              detail: null,
+              onClick: () => navigateToPost(post.id, textIndex),
+            });
+          });
+
+          replies.forEach((reply) => {
+            (reply.texts || []).forEach((t) => {
+              if (!textMatchesAnyTerm(t.content, textTerms)) return;
+              results.push({
+                parentType: 'reply',
+                parent: post,
+                main: t.content,
+                detail: null,
+                onClick: () => navigateToReply(post.id, reply.id),
+              });
+            });
+          });
+        }
+
+        if (hasAnyQuery) {
+          (post.tags || []).forEach((tag) => {
+            const normalized = (tag || '').toLowerCase();
+            const matchedTag = tagFilters.includes(normalized) || textTerms.some((term) => normalized.includes(term));
+            if (!matchedTag) return;
+            results.push({
+              parentType: 'post-tag',
+              parent: post,
+              main: getPostPrimaryText(post) || '投稿',
+              detail: `#${tag}`,
+              onClick: () => navigateToPost(post.id),
+            });
+          });
+        }
       });
   }
 
@@ -2070,24 +2169,97 @@ function runSearch() {
         ...(puzzle.tags || []),
       ];
       if (!matchesTextTerms(fields, textTerms)) return;
-      results.push({ type: 'puzzle', value: puzzle });
+
+      if (hasTextTerms) {
+        if (textMatchesAnyTerm(puzzle.text, textTerms)) {
+          results.push({
+            parentType: 'puzzle',
+            parent: puzzle,
+            main: puzzle.text,
+            detail: null,
+            onClick: () => navigateToPuzzle(puzzle.id),
+          });
+        }
+
+        (puzzle.notes || []).forEach((note) => {
+          if (!textMatchesAnyTerm(note.text, textTerms)) return;
+          results.push({
+            parentType: 'puzzle-note',
+            parent: puzzle,
+            main: puzzle.text,
+            detail: buildExcerpt(note.text, textTerms),
+            onClick: () => navigateToPuzzle(puzzle.id),
+          });
+        });
+
+        if (textMatchesAnyTerm(puzzle.meaning, textTerms)) {
+          results.push({
+            parentType: 'puzzle-meaning',
+            parent: puzzle,
+            main: puzzle.text,
+            detail: buildExcerpt(puzzle.meaning, textTerms),
+            onClick: () => navigateToPuzzle(puzzle.id),
+          });
+        }
+
+        (puzzle.examples || []).forEach((exampleText) => {
+          const textValue = typeof exampleText === 'string' ? exampleText : exampleText?.text;
+          if (!textMatchesAnyTerm(textValue, textTerms)) return;
+          results.push({
+            parentType: 'puzzle-example',
+            parent: puzzle,
+            main: puzzle.text,
+            detail: buildExcerpt(textValue, textTerms),
+            onClick: () => navigateToPuzzle(puzzle.id),
+          });
+        });
+
+        (puzzle.alternatives || []).forEach((alt) => {
+          const textValue = typeof alt === 'string' ? alt : alt?.text;
+          if (!textMatchesAnyTerm(textValue, textTerms)) return;
+          results.push({
+            parentType: 'puzzle-alternative',
+            parent: puzzle,
+            main: puzzle.text,
+            detail: buildExcerpt(textValue, textTerms),
+            onClick: () => navigateToPuzzle(puzzle.id),
+          });
+        });
+      }
+
+      if (hasAnyQuery) {
+        (puzzle.tags || []).forEach((tag) => {
+          const normalized = (tag || '').toLowerCase();
+          const matchedTag = tagFilters.includes(normalized) || textTerms.some((term) => normalized.includes(term));
+          if (!matchedTag) return;
+          results.push({
+            parentType: 'puzzle-tag',
+            parent: puzzle,
+            main: puzzle.text,
+            detail: `#${tag}`,
+            onClick: () => navigateToPuzzle(puzzle.id),
+          });
+        });
+      }
     });
   }
 
-  const getItemTimestamp = (item) => (item?.value?.updatedAt || item?.value?.createdAt || 0);
+  const getItemTimestamp = (item) => (item?.parent?.updatedAt || item?.parent?.createdAt || 0);
 
   results.sort((a, b) => {
-    const pinnedA = a.value?.pinned ? 1 : 0;
-    const pinnedB = b.value?.pinned ? 1 : 0;
+    const pinnedA = a.parent?.pinned ? 1 : 0;
+    const pinnedB = b.parent?.pinned ? 1 : 0;
     if (pinnedA !== pinnedB) return pinnedB - pinnedA;
     return getItemTimestamp(b) - getItemTimestamp(a);
   });
 
-  const renderer = (item, options) => (item.type === 'puzzle'
-    ? renderPuzzleCard(item.value, options)
-    : renderPostCard(item.value, options));
+  container.innerHTML = '';
+  if (!results.length) {
+    container.innerHTML = '<div class="empty-state">検索結果がありません。</div>';
+    return;
+  }
 
-  renderCardList(container, results, { emptyMessage: '検索結果がありません。', renderer });
+  results.forEach((item) => container.appendChild(createSearchResultCard(item)));
 }
 
 function getUpdatedTimestamp(item) {

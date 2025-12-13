@@ -302,6 +302,11 @@ button {
   padding: 112px 0 0;
 }
 
+#search-results {
+  padding: 10px 12px 24px;
+  gap: 10px;
+}
+
 .search-box {
   display: flex;
   flex-direction: column;
@@ -357,6 +362,46 @@ button {
 .search-button {
   height: 40px;
   min-width: 90px;
+}
+
+.search-result-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  cursor: pointer;
+  text-align: left;
+}
+
+.search-result-card:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.search-result-main {
+  width: 100%;
+  font-size: 1.6rem;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.search-result-card.two-line .search-result-main {
+  font-weight: 600;
+}
+
+.search-result-detail {
+  font-size: 1.4rem;
+  color: var(--muted);
+  line-height: 1.5;
+  width: 100%;
+  white-space: pre-wrap;
 }
 
 .icon-toggle-button {
