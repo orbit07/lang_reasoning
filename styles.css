@@ -1103,3 +1103,12 @@ button {
 
 .puzzle-list-block { display: flex; flex-direction: column; gap: 6px; }
 .puzzle-list-label { color: #334e68; }
+.puzzle-solved-list {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.puzzle-solved-item { list-style-type: disc; }
