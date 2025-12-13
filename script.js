@@ -87,6 +87,11 @@ function loadData() {
   ensurePuzzleFields(state.data);
 }
 
+function findPuzzleByIdentifier(identifier) {
+  if (!identifier) return null;
+  return state.data.puzzles.find((puzzle) => puzzle.id === identifier || puzzle.refId === identifier) || null;
+}
+
 function persistData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
   enforceStorageLimit();
@@ -462,7 +467,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   puzzleLabel.textContent = '紐づく謎';
   const puzzleInput = document.createElement('input');
   puzzleInput.type = 'text';
-  puzzleInput.placeholder = '1, 2, 3';
+  puzzleInput.placeholder = 'puzzle-xxxx';
   puzzleInput.className = 'tag-input';
   if (targetPost?.linkedPuzzleIds?.length) puzzleInput.value = targetPost.linkedPuzzleIds.join(', ');
   puzzleSection.append(puzzleLabel, puzzleInput);
@@ -623,13 +628,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
       targetPost.tags = tags;
       if (!isReplyContext) {
         targetPost.sourceUrl = sourceInput.value.trim() || null;
-        const puzzleIds = Array.from(new Set(
-          puzzleInput.value
-            .split(/[\s,、]+/)
-            .map((t) => Number(t))
-            .filter((n) => Number.isFinite(n)),
-        ));
-        targetPost.linkedPuzzleIds = puzzleIds;
+        targetPost.linkedPuzzleIds = parsePuzzleIdentifiers(puzzleInput.value);
       }
       targetPost.updatedAt = Date.now();
       if (imageDataUrl !== null) {
@@ -657,12 +656,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
         pinned: false,
         pinnedAt: null,
         sourceUrl: sourceInput.value.trim() || null,
-        linkedPuzzleIds: Array.from(new Set(
-          puzzleInput.value
-            .split(/[\s,、]+/)
-            .map((t) => Number(t))
-            .filter((n) => Number.isFinite(n)),
-        )),
+        linkedPuzzleIds: parsePuzzleIdentifiers(puzzleInput.value),
       };
       state.data.posts.push(post);
     }
@@ -701,6 +695,15 @@ function parseTagInput(value) {
     .split(/[\s,、]+/)
     .map((t) => t.replace(/^#/, '').trim())
     .filter((t) => t.length > 0);
+}
+
+function parsePuzzleIdentifiers(value) {
+  return Array.from(new Set(
+    value
+      .split(/[\s,、]+/)
+      .map((t) => t.replace(/^#/, '').trim())
+      .filter((id) => id.length > 0),
+  ));
 }
 
 function findPostByIdentifiers({ postId, refId } = {}) {
@@ -844,7 +847,9 @@ function navigateToPuzzle(puzzleId) {
   activateTab('puzzles');
   renderPuzzles();
   requestAnimationFrame(() => {
-    if (!focusElementWithHighlight(`puzzle-card-${puzzleId}`)) {
+    const puzzle = findPuzzleByIdentifier(puzzleId);
+    const targetId = puzzle?.id || puzzleId;
+    if (!focusElementWithHighlight(`puzzle-card-${targetId}`)) {
       console.warn('ターゲットの謎カードが見つかりませんでした', puzzleId);
     }
   });
@@ -1541,7 +1546,30 @@ function renderPuzzleCard(puzzle) {
   textBlock.className = 'puzzle-text';
   textBlock.textContent = puzzle.text;
 
-  basic.append(header, textBlock);
+  const referenceRow = document.createElement('div');
+  referenceRow.className = 'post-ref-row timeline-ref-row';
+  const refValue = puzzle.refId || puzzle.id;
+  const refText = document.createElement('span');
+  refText.className = 'post-ref-text';
+  refText.textContent = refValue;
+
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.className = 'copy-ref-button';
+  copyBtn.innerHTML = '<img src="img/copy_off.svg" alt="" width="24" class="icon-inline">';
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(refValue);
+      copyBtn.innerHTML = '<img src="img/copy_on.svg" alt="" width="24" class="icon-inline">';
+      setTimeout(() => { copyBtn.innerHTML = '<img src="img/copy_off.svg" alt="" width="24" class="icon-inline">'; }, 1500);
+    } catch (error) {
+      alert('コピーに失敗しました');
+    }
+  });
+
+  referenceRow.append(refText, copyBtn);
+
+  basic.append(header, textBlock, referenceRow);
   if (puzzle.pronunciation) {
     const pron = document.createElement('div');
     pron.className = 'pronunciation';
@@ -1830,12 +1858,15 @@ function renderPostCard(post, options = {}) {
       puzzleRow.appendChild(label);
       const list = document.createElement('div');
       list.className = 'puzzle-chip-list';
-      post.linkedPuzzleIds.forEach((id) => {
+      post.linkedPuzzleIds.forEach((identifier) => {
+        const puzzle = findPuzzleByIdentifier(identifier);
+        const displayId = puzzle?.refId || puzzle?.id || identifier;
+        const targetId = puzzle?.id || identifier;
         const chip = document.createElement('button');
         chip.type = 'button';
         chip.className = 'puzzle-chip puzzle-chip-link';
-        chip.textContent = `#${id}`;
-        chip.addEventListener('click', () => navigateToPuzzle(id));
+        chip.textContent = `#${displayId}`;
+        chip.addEventListener('click', () => navigateToPuzzle(targetId));
         list.appendChild(chip);
       });
       puzzleRow.appendChild(list);
