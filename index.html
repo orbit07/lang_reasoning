@@ -51,13 +51,17 @@
   <main class="main-container">
     <section id="timeline" class="tab-panel active">
       <div id="timeline-list" class="card-list"></div>
-      <button id="fab-import-posts" class="fab-button fab-secondary" aria-label="投稿のインポート/エクスポート">⇅</button>
+      <button id="fab-import-posts" class="fab-button fab-secondary" aria-label="投稿のインポート/エクスポート">
+        <img src="img/arrow.svg" alt="" width="22" />
+      </button>
       <button id="fab-new-post" class="fab-button" aria-label="新規投稿">＋</button>
     </section>
 
     <section id="puzzles" class="tab-panel">
       <div id="puzzle-list" class="card-list"></div>
-      <button id="fab-import-puzzles" class="fab-button fab-secondary" aria-label="謎カードのインポート/エクスポート">⇅</button>
+      <button id="fab-import-puzzles" class="fab-button fab-secondary" aria-label="謎カードのインポート/エクスポート">
+        <img src="img/arrow.svg" alt="" width="22" />
+      </button>
       <button id="fab-new-puzzle" class="fab-button" aria-label="謎の新規投稿">＋</button>
     </section>
 
@@ -71,9 +75,11 @@
           </select>
           <div class="search-filter-group">
             <button id="search-pin-btn" class="icon-toggle-button" aria-pressed="false" aria-label="ピン留めフィルター">
-              <img src="img/hart_off.svg" alt="ピン留めフィルター" width="24" height="24" class="icon-inline" />
+              <img src="img/pin_off.svg" alt="ピン留めフィルター" width="24" height="24" class="icon-inline" />
             </button>
-            <button id="search-solved-btn" class="filter-toggle-button" aria-pressed="false">解決済み</button>
+            <button id="search-solved-btn" class="filter-toggle-button" aria-pressed="false">
+              <img src="img/light_off.svg" alt="解決フィルター" width="24" height="24" class="icon-inline" />
+            </button>
           </div>
         </div>
         <div class="search-row search-row-bottom">

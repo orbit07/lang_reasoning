@@ -8,7 +8,7 @@
   --text: #1f2933;
   --muted: #52606d;
   --border: #e5e7eb;
-  --primary: #1f7aee;
+  --primary: #57a8ff;
   --danger: #d14343;
   --shadow: 0 2px 12px hsl(259.83deg 68.24% 91.3% / 50%);
 }
@@ -330,11 +330,11 @@ button {
 }
 
 .search-row-top {
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 100px;
 }
 
 .search-row-bottom {
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr 100px;
 }
 
 .search-filter-group {
@@ -410,29 +410,20 @@ button {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
-  border: 1px solid #d8d8e7;
-  background: #fff;
-}
-
-.icon-toggle-button.active,
-.filter-toggle-button.active {
-  background: #e4f2ff;
-  border-color: #57a8ff;
-  box-shadow: 0 0 0 2px rgba(87, 168, 255, 0.15);
 }
 
 .filter-toggle-button {
   height: 40px;
   padding: 0 12px;
-  border-radius: 10px;
-  border: 1px solid #d8d8e7;
-  background: #fff;
-  color: #4d4d5c;
   font-weight: 600;
 }
 
-.primary-button { background: #57a8ff; color: #fff; border: 1px solid #57a8ff;}
+.primary-button { 
+  background: #57a8ff;
+  color: #fff;
+  width: 100%;
+  text-align: center;
+}
 
 .modal {
   position: fixed;
@@ -776,10 +767,12 @@ button {
 .post-extra-label {
   font-weight: 700;
   color: var(--muted);
+  display: flex;
+  justify-content: center;
 }
 
 .post-extra-link {
-  color: #2f6fe4;
+  color: #57a8ff;
   word-break: break-all;
 }
 
@@ -790,12 +783,11 @@ button {
 }
 
 .puzzle-chip {
-  background: #eef5ff;
-  border: 1px solid var(--border);
-  padding: 2px 8px;
+  border: 1px solid #57a8ff;
+  padding: 4px 8px;
+  font-size: 1.2rem;
   border-radius: 12px;
-  font-weight: 700;
-  color: #2f6fe4;
+  color: #57a8ff;
 }
 .puzzle-chip-link {
   cursor: pointer;
@@ -828,6 +820,8 @@ button {
   height: 50px;
   font-size: 2.4rem;
   background: var(--muted);
+  display: flex;
+  justify-content: center;
 }
 .text-block-container {
   display: flex;
@@ -969,12 +963,8 @@ button {
 }
 
 .copy-ref-button {
-  padding: 4px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: #334e68;
   cursor: pointer;
+  display: flex;
 }
 
 .copy-ref-button:hover {
@@ -995,7 +985,6 @@ button {
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
-  margin-top: 8px;
 }
 
 .accordion summary {
@@ -1023,7 +1012,7 @@ button {
 }
 
 .puzzle-body {
-  gap: 12px;
+  gap: 10spx;
 }
 
 .puzzle-basic {
@@ -1052,7 +1041,7 @@ button {
   gap: 8px;
 }
 
-.puzzle-ref-list { padding-left: 18px; color: var(--muted); }
+.puzzle-ref-list { color: var(--muted); }
 .puzzle-ref-link {
   background: none;
   border: none;

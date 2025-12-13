@@ -1476,10 +1476,6 @@ function renderPuzzleCard(puzzle) {
   const created = document.createElement('span');
   created.className = 'card-meta-item';
   created.textContent = formatDate(puzzle.updatedAt || puzzle.createdAt);
-  const status = document.createElement('span');
-  status.className = puzzle.isSolved ? 'puzzle-status solved' : 'puzzle-status';
-  status.textContent = puzzle.isSolved ? '解決済' : '未解決';
-  meta.append(created, status);
 
   const body = document.createElement('div');
   body.className = 'card-body puzzle-body';
@@ -1609,7 +1605,7 @@ function renderPuzzleCard(puzzle) {
 
   const solvedBtn = document.createElement('button');
   solvedBtn.className = 'card-action-button';
-  solvedBtn.textContent = puzzle.isSolved ? '未解決に戻す' : '解決ボタン';
+  solvedBtn.innerHTML = puzzle.isSolved ? '<img src="img/light_on.svg" alt="未解決に戻す" width="22" class="icon-inline">' : '<img src="img/light_off.svg" alt="解決" width="22" class="icon-inline">';
   solvedBtn.addEventListener('click', () => togglePuzzleSolved(puzzle.id));
 
   const editBtn = document.createElement('button');
@@ -1620,8 +1616,8 @@ function renderPuzzleCard(puzzle) {
   const pinBtn = document.createElement('button');
   pinBtn.className = 'card-action-button';
   pinBtn.innerHTML = puzzle.pinned
-    ? '<img src="img/hart_on.svg" alt="ピン留め中" width="20" class="icon-inline">'
-    : '<img src="img/hart_off.svg" alt="ピン留め" width="20" class="icon-inline">';
+    ? '<img src="img/pin_on.svg" alt="ピン留め中" width="20" class="icon-inline">'
+    : '<img src="img/pin_off.svg" alt="ピン留め" width="20" class="icon-inline">';
   if (puzzle.pinned) pinBtn.classList.add('liked');
   pinBtn.addEventListener('click', () => togglePuzzlePinned(puzzle.id));
 
@@ -1718,13 +1714,13 @@ function renderPostCard(post, options = {}) {
       const copyBtn = document.createElement('button');
       copyBtn.type = 'button';
       copyBtn.className = 'copy-ref-button';
-      copyBtn.textContent = 'コピー';
+      copyBtn.innerHTML = '<img src="img/copy_off.svg" alt="" width="24" class="icon-inline">';
       copyBtn.addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(refValue);
           const original = copyBtn.textContent;
-          copyBtn.textContent = 'コピー済み';
-          setTimeout(() => { copyBtn.textContent = original; }, 1500);
+          copyBtn.innerHTML = '<img src="img/copy_on.svg" alt="" width="24" class="icon-inline">';
+          setTimeout(() => { copyBtn.innerHTML = '<img src="img/copy_off.svg" alt="" width="24" class="icon-inline">'; }, 1500);
         } catch (error) {
           alert('コピーに失敗しました');
         }
@@ -1771,7 +1767,7 @@ function renderPostCard(post, options = {}) {
     if (post.sourceUrl) {
       const sourceRow = document.createElement('div');
       sourceRow.className = 'post-extra-row';
-      sourceRow.innerHTML = '<span class="post-extra-label">参考URL:</span>';
+      sourceRow.innerHTML = '<img src="img/link.svg" alt="" width="20" class="icon-inline">';
       const link = document.createElement('a');
       link.href = post.sourceUrl;
       link.target = '_blank';
@@ -1786,7 +1782,7 @@ function renderPostCard(post, options = {}) {
       puzzleRow.className = 'post-extra-row';
       const label = document.createElement('span');
       label.className = 'post-extra-label';
-      label.textContent = '紐づく謎ID:';
+      label.innerHTML = '<img src="img/puzzle_off.svg" alt="" width="20" class="icon-inline">';
       puzzleRow.appendChild(label);
       const list = document.createElement('div');
       list.className = 'puzzle-chip-list';
@@ -1826,8 +1822,8 @@ function renderPostCard(post, options = {}) {
     const pinBtn = document.createElement('button');
     pinBtn.className = 'card-action-button';
     pinBtn.innerHTML = post.pinned
-      ? '<img src="img/hart_on.svg" alt="ピン留め中" width="20" class="icon-inline">'
-      : '<img src="img/hart_off.svg" alt="ピン留め" width="20" class="icon-inline">';
+      ? '<img src="img/pin_on.svg" alt="ピン留め中" width="20" class="icon-inline">'
+      : '<img src="img/pin_off.svg" alt="ピン留め" width="20" class="icon-inline">';
     if (post.pinned) pinBtn.classList.add('liked');
     pinBtn.addEventListener('click', () => togglePinned(post.id));
 
@@ -1991,7 +1987,7 @@ function toggleSearchPinnedFilter() {
   btn.classList.toggle('active', nextState);
   btn.setAttribute('aria-pressed', nextState);
   const icon = btn.querySelector('img');
-  if (icon) icon.src = nextState ? 'img/hart_on.svg' : 'img/hart_off.svg';
+  if (icon) icon.src = nextState ? 'img/pin_on.svg' : 'img/pin_off.svg';
 }
 
 function toggleSearchSolvedFilter() {
