@@ -688,7 +688,7 @@ function formatPostRef(ref) {
   const postId = Number(ref.postId);
   const textIndex = Number(ref.textIndex ?? 0);
   if (!Number.isFinite(postId)) return '';
-  return `postId${postId}.textIndex${Number.isFinite(textIndex) ? textIndex : 0}`;
+  return `post${postId}.${Number.isFinite(textIndex) ? textIndex : 0}`;
 }
 
 function parsePostRefInput(value) {
@@ -696,8 +696,8 @@ function parsePostRefInput(value) {
   if (!trimmed) return null;
 
   const patterns = [
+    /post(\d+)\s*\.\s*(\d+)/i,
     /postId(\d+)\s*\.\s*textIndex(\d+)/i,
-    /^(\d+)\s*\.\s*(\d+)$/,
   ];
 
   const match = patterns.map((regex) => trimmed.match(regex)).find(Boolean);
@@ -884,7 +884,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   postContainer.className = 'puzzle-multi-list';
   const postLabel = document.createElement('div');
   postLabel.className = 'tag-label';
-  postLabel.textContent = '手がかり（postId.textIndex または 数字.数字）';
+  postLabel.textContent = '手がかり（post6.0）';
   const postList = document.createElement('div');
   postList.className = 'puzzle-field-list';
   const addPostBtn = document.createElement('button');
@@ -897,7 +897,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     row.className = 'puzzle-ref-row';
     const postInput = document.createElement('input');
     postInput.type = 'text';
-    postInput.placeholder = 'postId3.textIndex1 または 3.1';
+    postInput.placeholder = 'post6.0';
     postInput.className = 'tag-input';
     postInput.value = formatPostRef(ref);
     const remove = document.createElement('button');
