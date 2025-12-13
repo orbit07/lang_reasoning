@@ -676,11 +676,11 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   container.appendChild(textAreaContainer);
   container.appendChild(addBtn);
   container.appendChild(imageRow);
+  fragment.appendChild(tagSection);
   if (!isReplyContext) {
     fragment.appendChild(sourceSection);
     fragment.appendChild(puzzleSection);
   }
-  fragment.appendChild(tagSection);
   fragment.appendChild(actions);
   return fragment;
 }
