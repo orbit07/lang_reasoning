@@ -436,7 +436,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   container.className = 'modal-body-section';
   fragment.appendChild(container);
   const tagSection = document.createElement('div');
-  tagSection.className = 'form-row';
+  tagSection.className = 'modal-tag-section';
   const tagLabel = document.createElement('label');
   tagLabel.className = 'tag-label';
   tagLabel.textContent = 'タグ';
