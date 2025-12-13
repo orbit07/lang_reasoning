@@ -1698,8 +1698,10 @@ function renderPuzzleCard(puzzle) {
       label.className = 'puzzle-list-label';
       label.textContent = title;
       const list = document.createElement('ul');
+      list.className = 'puzzle-solved-list';
       values.forEach((val) => {
         const item = document.createElement('li');
+        item.className = 'puzzle-solved-item';
         item.textContent = val;
         list.appendChild(item);
       });
@@ -1708,11 +1710,6 @@ function renderPuzzleCard(puzzle) {
     };
     renderList('言い換え', puzzle.alternatives || []);
     renderList('例文', puzzle.examples || []);
-
-    if (puzzle.tags?.length) {
-      const tags = renderPuzzleTagList(puzzle.tags);
-      solvedContent.appendChild(tags);
-    }
 
     body.appendChild(createAccordion('解決', solvedContent));
   }
