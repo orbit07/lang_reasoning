@@ -1005,7 +1005,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   notesContainer.className = 'puzzle-multi-list';
   const notesLabel = document.createElement('div');
   notesLabel.className = 'tag-label';
-  notesLabel.textContent = 'メモ (notes)';
+  notesLabel.textContent = 'メモ';
   const notesList = document.createElement('div');
   notesList.className = 'puzzle-field-list';
   const addNoteBtn = document.createElement('button');
