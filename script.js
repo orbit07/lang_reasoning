@@ -1387,7 +1387,12 @@ function renderDashboard() {
 }
 
 
-function renderCardList(container, items, { emptyMessage, highlightImage = false, forceRenderAll = false } = {}) {
+function renderCardList(container, items, {
+  emptyMessage,
+  highlightImage = false,
+  forceRenderAll = false,
+  renderer = (item, options) => renderPostCard(item, options),
+} = {}) {
   if (container._infiniteObserver) {
     container._infiniteObserver.disconnect();
   }
@@ -1412,7 +1417,7 @@ function renderCardList(container, items, { emptyMessage, highlightImage = false
 
   const renderBatch = (count) => {
     const slice = items.slice(index, index + count);
-    slice.forEach((post) => container.appendChild(renderPostCard(post, { highlightImage })));
+    slice.forEach((item) => container.appendChild(renderer(item, { highlightImage })));
     index += count;
     if (index < items.length) addSentinel();
   };
@@ -1979,6 +1984,14 @@ function toggleSearchPinnedFilter() {
   if (icon) icon.src = nextState ? 'img/hart_on.svg' : 'img/hart_off.svg';
 }
 
+function toggleSearchSolvedFilter() {
+  const btn = document.getElementById('search-solved-btn');
+  if (!btn) return;
+  const nextState = !btn.classList.contains('active');
+  btn.classList.toggle('active', nextState);
+  btn.setAttribute('aria-pressed', nextState);
+}
+
 function togglePuzzleSolved(id) {
   const puzzle = state.data.puzzles.find((p) => p.id === id);
   if (!puzzle) return;
@@ -1993,32 +2006,88 @@ function isSearchPinnedFilterActive() {
   return document.getElementById('search-pin-btn')?.classList.contains('active');
 }
 
+function isSearchSolvedFilterActive() {
+  return document.getElementById('search-solved-btn')?.classList.contains('active');
+}
+
 function runSearch() {
   const query = document.getElementById('search-input').value.trim();
+  const searchType = document.getElementById('search-type-select')?.value || 'all';
   const container = document.getElementById('search-results');
+  const pinnedOnly = isSearchPinnedFilterActive();
+  const solvedOnly = isSearchSolvedFilterActive();
+
   const terms = query.split(/\s+/).filter(Boolean);
-  let tagFilter = null;
+  const tagFilters = [];
   const textTerms = [];
   terms.forEach((t) => {
-    if (t.startsWith('#')) tagFilter = t.slice(1);
-    else textTerms.push(t);
+    if (t.startsWith('#')) tagFilters.push(t.slice(1).toLowerCase());
+    else textTerms.push(t.toLowerCase());
   });
 
-  let results = state.data.posts.filter((p) => !p.isDeleted);
-  if (tagFilter) {
-    const tagLower = tagFilter.toLowerCase();
-    results = results.filter((p) => p.tags.some((tag) => tag.toLowerCase() === tagLower));
-  }
-  if (textTerms.length) {
-    const lowerTerms = textTerms.map((t) => t.toLowerCase());
-    results = results.filter((p) => lowerTerms.every((term) => p.texts.some((t) => t.content.toLowerCase().includes(term))));
-  }
-  if (isSearchPinnedFilterActive()) {
-    results = results.filter((p) => p.pinned);
-  }
-  results.sort((a, b) => b.createdAt - a.createdAt);
+  const matchesTextTerms = (fields, lowerTerms) => {
+    if (!lowerTerms.length) return true;
+    const normalized = (fields || []).filter(Boolean).map((text) => text.toLowerCase());
+    return lowerTerms.every((term) => normalized.some((field) => field.includes(term)));
+  };
 
-  renderCardList(container, results, { emptyMessage: '検索結果がありません。' });
+  const matchesTags = (tags = []) => {
+    if (!tagFilters.length) return true;
+    const normalizedTags = tags.map((tag) => tag.toLowerCase());
+    return tagFilters.every((tag) => normalizedTags.includes(tag));
+  };
+
+  const results = [];
+
+  if (searchType === 'all' || searchType === 'clue') {
+    state.data.posts
+      .filter((p) => !p.isDeleted)
+      .forEach((post) => {
+        if (pinnedOnly && !post.pinned) return;
+        if (!matchesTags(post.tags)) return;
+        const replies = state.data.replies.filter((r) => r.postId === post.id);
+        const fields = [
+          ...(post.texts || []).map((t) => t.content),
+          ...replies.flatMap((r) => (r.texts || []).map((t) => t.content)),
+          ...(post.tags || []),
+        ];
+        if (!matchesTextTerms(fields, textTerms)) return;
+        results.push({ type: 'post', value: post });
+      });
+  }
+
+  if (searchType === 'all' || searchType === 'puzzle') {
+    state.data.puzzles.forEach((puzzle) => {
+      if (pinnedOnly && !puzzle.pinned) return;
+      if (solvedOnly && !puzzle.isSolved) return;
+      if (!matchesTags(puzzle.tags)) return;
+      const fields = [
+        puzzle.text,
+        ...(puzzle.notes || []).map((note) => note.text),
+        puzzle.meaning,
+        ...(puzzle.alternatives || []),
+        ...(puzzle.examples || []),
+        ...(puzzle.tags || []),
+      ];
+      if (!matchesTextTerms(fields, textTerms)) return;
+      results.push({ type: 'puzzle', value: puzzle });
+    });
+  }
+
+  const getItemTimestamp = (item) => (item?.value?.updatedAt || item?.value?.createdAt || 0);
+
+  results.sort((a, b) => {
+    const pinnedA = a.value?.pinned ? 1 : 0;
+    const pinnedB = b.value?.pinned ? 1 : 0;
+    if (pinnedA !== pinnedB) return pinnedB - pinnedA;
+    return getItemTimestamp(b) - getItemTimestamp(a);
+  });
+
+  const renderer = (item, options) => (item.type === 'puzzle'
+    ? renderPuzzleCard(item.value, options)
+    : renderPostCard(item.value, options));
+
+  renderCardList(container, results, { emptyMessage: '検索結果がありません。', renderer });
 }
 
 function getUpdatedTimestamp(item) {
@@ -2326,6 +2395,10 @@ function setupGlobalEvents() {
   document.getElementById('search-btn').addEventListener('click', runSearch);
   const likeFilterBtn = document.getElementById('search-pin-btn');
   if (likeFilterBtn) likeFilterBtn.addEventListener('click', () => { toggleSearchPinnedFilter(); runSearch(); });
+  const solvedFilterBtn = document.getElementById('search-solved-btn');
+  if (solvedFilterBtn) solvedFilterBtn.addEventListener('click', () => { toggleSearchSolvedFilter(); runSearch(); });
+  const searchTypeSelect = document.getElementById('search-type-select');
+  if (searchTypeSelect) searchTypeSelect.addEventListener('change', runSearch);
   document.getElementById('search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch(); });
   window.addEventListener('beforeunload', () => window.speechSynthesis.cancel());
 }

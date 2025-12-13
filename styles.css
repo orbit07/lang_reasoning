@@ -299,22 +299,65 @@ button {
 }
 
 .search-panel {
-  padding: 60px 0 0;
+  padding: 130px 0 0;
 }
+
 .search-box {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   position: fixed;
-  padding: 10px;
-  min-width: 100%;
+  padding: 12px;
+  width: 100%;
   top: 0;
   left: 0;
   background: rgba(255, 255, 255, .5);
   backdrop-filter: blur(10px);
   z-index: 999;
+  box-sizing: border-box;
 }
-.search-input { flex: 1; padding: 5px; border-radius: 10px; border: 1px solid #57a8ff; }
+
+.search-row {
+  display: grid;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.search-row-top {
+  grid-template-columns: 1fr auto;
+}
+
+.search-row-bottom {
+  grid-template-columns: 1fr auto;
+}
+
+.search-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #57a8ff;
+  font-size: 1.6rem;
+  background: #fff;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #57a8ff;
+}
+
+.search-button {
+  height: 40px;
+  min-width: 90px;
+}
 
 .icon-toggle-button {
   display: inline-flex;
@@ -322,6 +365,26 @@ button {
   justify-content: center;
   width: 40px;
   height: 40px;
+  border-radius: 10px;
+  border: 1px solid #d8d8e7;
+  background: #fff;
+}
+
+.icon-toggle-button.active,
+.filter-toggle-button.active {
+  background: #e4f2ff;
+  border-color: #57a8ff;
+  box-shadow: 0 0 0 2px rgba(87, 168, 255, 0.15);
+}
+
+.filter-toggle-button {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #d8d8e7;
+  background: #fff;
+  color: #4d4d5c;
+  font-weight: 600;
 }
 
 .primary-button { background: #57a8ff; color: #fff; border: 1px solid #57a8ff;}
