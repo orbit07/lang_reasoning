@@ -137,7 +137,19 @@ button {
   cursor: pointer;
 }
 
-.tag-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.tag-list::before {
+  content: '';
+  width: 18px;
+  height: 18px;
+  background: url('img/tag.svg') center/contain no-repeat;
+  flex: 0 0 18px;
+}
 .tag {
   color: #57a8ff;
   padding: 4px 8px;
