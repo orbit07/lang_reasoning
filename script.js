@@ -911,14 +911,11 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
 
   const textRow = document.createElement('div');
   textRow.className = 'form-row';
-  const textLabel = document.createElement('label');
-  textLabel.className = 'tag-label';
-  textLabel.textContent = 'テキスト';
   const textArea = document.createElement('textarea');
   textArea.className = 'text-area';
   textArea.value = base.text;
   textArea.placeholder = '謎の表面テキストを入力';
-  textRow.append(textLabel, textArea);
+  textRow.append(textArea);
 
   const langRow = document.createElement('div');
   langRow.className = 'language-select puzzle-language-row';
@@ -952,7 +949,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   postContainer.className = 'puzzle-multi-list';
   const postLabel = document.createElement('div');
   postLabel.className = 'tag-label';
-  postLabel.textContent = '手がかり（post-xxxx.0）';
+  postLabel.textContent = '手がかり';
   const postList = document.createElement('div');
   postList.className = 'puzzle-field-list';
   const addPostBtn = document.createElement('button');
@@ -987,7 +984,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   relatedRow.className = 'form-row';
   const relatedLabel = document.createElement('label');
   relatedLabel.className = 'tag-label';
-  relatedLabel.textContent = '関連する謎ID (relatedPuzzleIds)';
+  relatedLabel.textContent = '関連する謎';
   const relatedInput = document.createElement('input');
   relatedInput.type = 'text';
   relatedInput.className = 'tag-input';
