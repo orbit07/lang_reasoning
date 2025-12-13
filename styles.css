@@ -607,7 +607,7 @@ button {
 .modal-tag-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   padding: 0 15px 10px;
 }
 .tag-label {
@@ -771,13 +771,14 @@ button {
 }
 
 .post-extra-row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 20px 1fr;
   gap: 8px;
-  flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .post-extra-label {
+  height: 28px;
   font-weight: 700;
   color: var(--muted);
   display: flex;
