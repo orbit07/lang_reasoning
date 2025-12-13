@@ -436,7 +436,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   container.className = 'modal-body-section';
   fragment.appendChild(container);
   const tagSection = document.createElement('div');
-  tagSection.className = 'modal-tag-section';
+  tagSection.className = 'form-row';
   const tagLabel = document.createElement('label');
   tagLabel.className = 'tag-label';
   tagLabel.textContent = 'タグ';
@@ -905,7 +905,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   textContainer.appendChild(textBlock);
 
   const tagsSection = document.createElement('div');
-  tagsSection.className = 'modal-tag-section';
+  tagsSection.className = 'form-row';
   const tagsLabel = document.createElement('label');
   tagsLabel.className = 'tag-label';
   tagsLabel.textContent = 'タグ';
@@ -1015,7 +1015,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
 
   const clueSection = document.createElement('div');
   clueSection.className = 'puzzle-form-section active';
-  clueSection.append(notesContainer, postContainer, relatedRow);
+  clueSection.append(notesContainer, tagsSection, postContainer, relatedRow);
 
   const meaningRow = document.createElement('div');
   meaningRow.className = 'form-row';
@@ -1082,7 +1082,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   if (base.isSolved) solutionSection.classList.add('active');
   solutionSection.append(meaningRow, alternativesWrap, examplesWrap);
 
-  container.append(textContainer, tagsSection, clueSection);
+  container.append(textContainer, clueSection);
   if (base.isSolved) container.append(solutionSection);
   fragment.append(container);
 
