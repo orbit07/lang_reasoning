@@ -1589,6 +1589,19 @@ function renderPuzzleCard(puzzle) {
   const extra = document.createElement('div');
   extra.className = 'post-extra';
 
+  const hasNotes = puzzle.notes?.length;
+  if (hasNotes) {
+    const notesWrap = document.createElement('div');
+    notesWrap.className = 'puzzle-note-list';
+    puzzle.notes.forEach((note) => {
+      const noteEl = document.createElement('div');
+      noteEl.className = 'puzzle-note';
+      noteEl.textContent = note.text;
+      notesWrap.appendChild(noteEl);
+    });
+    extra.appendChild(notesWrap);
+  }
+
   if (puzzle.tags?.length) {
     const tagRow = document.createElement('div');
     tagRow.className = 'post-extra-row';
@@ -1600,9 +1613,8 @@ function renderPuzzleCard(puzzle) {
     extra.appendChild(tagRow);
   }
 
-  const hasNotes = puzzle.notes?.length;
   const hasPostRefs = puzzle.post?.length;
-  if (hasNotes || hasPostRefs) {
+  if (hasPostRefs) {
     const clueRow = document.createElement('div');
     clueRow.className = 'post-extra-row puzzle-clue-row';
     const clueLabel = document.createElement('span');
@@ -1612,39 +1624,25 @@ function renderPuzzleCard(puzzle) {
     const clueWrap = document.createElement('div');
     clueWrap.className = 'puzzle-clue-list';
 
-    if (hasNotes) {
-      const notesWrap = document.createElement('div');
-      notesWrap.className = 'puzzle-note-list';
-      puzzle.notes.forEach((note) => {
-        const noteEl = document.createElement('div');
-        noteEl.className = 'puzzle-note';
-        noteEl.textContent = note.text;
-        notesWrap.appendChild(noteEl);
-      });
-      clueWrap.appendChild(notesWrap);
-    }
-
-    if (hasPostRefs) {
-      const list = document.createElement('div');
-      list.className = 'puzzle-ref-list';
-      puzzle.post.forEach((ref) => {
-        const normalized = normalizePostRef(ref);
-        const label = formatPostRef(normalized) || `Post #${ref.postId} / textIndex ${ref.textIndex}`;
-        if (normalized) {
-          const link = document.createElement('button');
-          link.type = 'button';
-          link.className = 'puzzle-ref-link';
-          link.textContent = label;
-          link.addEventListener('click', () => navigateToPost(normalized));
-          list.appendChild(link);
-        } else {
-          const text = document.createElement('span');
-          text.textContent = label;
-          list.appendChild(text);
-        }
-      });
-      clueWrap.appendChild(list);
-    }
+    const list = document.createElement('div');
+    list.className = 'puzzle-ref-list';
+    puzzle.post.forEach((ref) => {
+      const normalized = normalizePostRef(ref);
+      const label = formatPostRef(normalized) || `Post #${ref.postId} / textIndex ${ref.textIndex}`;
+      if (normalized) {
+        const link = document.createElement('button');
+        link.type = 'button';
+        link.className = 'puzzle-ref-link';
+        link.textContent = label;
+        link.addEventListener('click', () => navigateToPost(normalized));
+        list.appendChild(link);
+      } else {
+        const text = document.createElement('span');
+        text.textContent = label;
+        list.appendChild(text);
+      }
+    });
+    clueWrap.appendChild(list);
 
     clueRow.append(clueLabel, clueWrap);
     extra.appendChild(clueRow);
