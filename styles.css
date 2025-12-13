@@ -150,6 +150,9 @@ button {
   background: url('img/tag.svg') center/contain no-repeat;
   flex: 0 0 18px;
 }
+.post-extra-row .tag-list::before {
+  display: none;
+}
 .tag {
   color: #57a8ff;
   padding: 4px 8px;
