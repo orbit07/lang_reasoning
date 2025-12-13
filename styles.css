@@ -793,6 +793,12 @@ button {
   word-break: break-all;
 }
 
+.puzzle-clue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .puzzle-chip-list {
   display: flex;
   gap: 6px;
@@ -1056,7 +1062,12 @@ button {
   gap: 8px;
 }
 
-.puzzle-ref-list { color: var(--muted); }
+.puzzle-ref-list {
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .puzzle-ref-link {
   background: none;
   border: none;

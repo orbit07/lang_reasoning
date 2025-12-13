@@ -1586,60 +1586,100 @@ function renderPuzzleCard(puzzle) {
 
   const clueContent = document.createElement('div');
   clueContent.className = 'puzzle-section-content';
-  const clueParts = [];
-  if (puzzle.notes?.length) {
-    const notesWrap = document.createElement('div');
-    notesWrap.className = 'puzzle-note-list';
-    puzzle.notes.forEach((note) => {
-      const noteEl = document.createElement('div');
-      noteEl.className = 'puzzle-note';
-      noteEl.textContent = note.text;
-      notesWrap.appendChild(noteEl);
-    });
-    clueParts.push(notesWrap);
+  const extra = document.createElement('div');
+  extra.className = 'post-extra';
+
+  if (puzzle.tags?.length) {
+    const tagRow = document.createElement('div');
+    tagRow.className = 'post-extra-row';
+    const tagLabel = document.createElement('span');
+    tagLabel.className = 'post-extra-label';
+    tagLabel.innerHTML = '<img src="img/tag.svg" alt="" width="20" class="icon-inline">';
+    const tagList = renderPuzzleTagList(puzzle.tags);
+    tagRow.append(tagLabel, tagList);
+    extra.appendChild(tagRow);
   }
 
-  if (puzzle.post?.length) {
-    const list = document.createElement('ul');
-    list.className = 'puzzle-ref-list';
-    puzzle.post.forEach((ref) => {
-      const item = document.createElement('li');
-      const normalized = normalizePostRef(ref);
-      const label = formatPostRef(normalized) || `Post #${ref.postId} / textIndex ${ref.textIndex}`;
-      if (normalized) {
-        const link = document.createElement('button');
-        link.type = 'button';
-        link.className = 'puzzle-ref-link';
-        link.textContent = label;
-        link.addEventListener('click', () => navigateToPost(normalized));
-        item.appendChild(link);
-      } else {
-        item.textContent = label;
-      }
-      list.appendChild(item);
-    });
-    clueParts.push(list);
+  const hasNotes = puzzle.notes?.length;
+  const hasPostRefs = puzzle.post?.length;
+  if (hasNotes || hasPostRefs) {
+    const clueRow = document.createElement('div');
+    clueRow.className = 'post-extra-row puzzle-clue-row';
+    const clueLabel = document.createElement('span');
+    clueLabel.className = 'post-extra-label';
+    clueLabel.innerHTML = '<img src="img/link.svg" alt="" width="20" class="icon-inline">';
+
+    const clueWrap = document.createElement('div');
+    clueWrap.className = 'puzzle-clue-list';
+
+    if (hasNotes) {
+      const notesWrap = document.createElement('div');
+      notesWrap.className = 'puzzle-note-list';
+      puzzle.notes.forEach((note) => {
+        const noteEl = document.createElement('div');
+        noteEl.className = 'puzzle-note';
+        noteEl.textContent = note.text;
+        notesWrap.appendChild(noteEl);
+      });
+      clueWrap.appendChild(notesWrap);
+    }
+
+    if (hasPostRefs) {
+      const list = document.createElement('div');
+      list.className = 'puzzle-ref-list';
+      puzzle.post.forEach((ref) => {
+        const normalized = normalizePostRef(ref);
+        const label = formatPostRef(normalized) || `Post #${ref.postId} / textIndex ${ref.textIndex}`;
+        if (normalized) {
+          const link = document.createElement('button');
+          link.type = 'button';
+          link.className = 'puzzle-ref-link';
+          link.textContent = label;
+          link.addEventListener('click', () => navigateToPost(normalized));
+          list.appendChild(link);
+        } else {
+          const text = document.createElement('span');
+          text.textContent = label;
+          list.appendChild(text);
+        }
+      });
+      clueWrap.appendChild(list);
+    }
+
+    clueRow.append(clueLabel, clueWrap);
+    extra.appendChild(clueRow);
   }
 
   if (puzzle.relatedPuzzleIds?.length) {
-    const related = document.createElement('div');
-    related.className = 'puzzle-chip-list';
+    const relatedRow = document.createElement('div');
+    relatedRow.className = 'post-extra-row';
+    const relatedLabel = document.createElement('span');
+    relatedLabel.className = 'post-extra-label';
+    relatedLabel.innerHTML = '<img src="img/puzzle_off.svg" alt="" width="20" class="icon-inline">';
+    const relatedList = document.createElement('div');
+    relatedList.className = 'puzzle-chip-list';
     puzzle.relatedPuzzleIds.forEach((id) => {
-      const chip = document.createElement('span');
-      chip.className = 'puzzle-chip';
-      chip.textContent = `#${id}`;
-      related.appendChild(chip);
+      const puzzle = findPuzzleByIdentifier(id);
+      const displayId = puzzle?.refId || puzzle?.id || id;
+      const targetId = puzzle?.id || id;
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'puzzle-chip puzzle-chip-link';
+      chip.textContent = `#${displayId}`;
+      chip.addEventListener('click', () => navigateToPuzzle(targetId));
+      relatedList.appendChild(chip);
     });
-    clueParts.push(related);
+    relatedRow.append(relatedLabel, relatedList);
+    extra.appendChild(relatedRow);
   }
 
-  if (clueParts.length === 0) {
+  if (!extra.children.length) {
     const helper = document.createElement('div');
     helper.className = 'helper';
     helper.textContent = '手がかりがまだ登録されていません。';
     clueContent.appendChild(helper);
   } else {
-    clueParts.forEach((part) => clueContent.appendChild(part));
+    clueContent.appendChild(extra);
   }
   body.appendChild(createAccordion('手がかり', clueContent));
 
