@@ -447,7 +447,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   sourceSection.className = 'modal-tag-section';
   const sourceLabel = document.createElement('label');
   sourceLabel.className = 'tag-label';
-  sourceLabel.textContent = '参考URL (sourceUrl)';
+  sourceLabel.textContent = '参考URL';
   const sourceInput = document.createElement('input');
   sourceInput.type = 'url';
   sourceInput.placeholder = 'https://example.com';
@@ -459,7 +459,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   puzzleSection.className = 'modal-tag-section';
   const puzzleLabel = document.createElement('label');
   puzzleLabel.className = 'tag-label';
-  puzzleLabel.textContent = '紐づく謎ID一覧 (linkedPuzzleIds)';
+  puzzleLabel.textContent = '紐づく謎';
   const puzzleInput = document.createElement('input');
   puzzleInput.type = 'text';
   puzzleInput.placeholder = '1, 2, 3';

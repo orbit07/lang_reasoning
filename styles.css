@@ -596,7 +596,6 @@ button {
   padding: 0 15px 10px;
 }
 .tag-label {
-  font-weight: 600;
   color: #334e68;
 }
 .tag-input {
@@ -753,8 +752,7 @@ button {
 .post-extra {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 10px;
+  gap: 5px;
 }
 
 .post-extra-row {
@@ -984,7 +982,6 @@ button {
   background: #fff;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--border);
 }
 
 .accordion summary {
