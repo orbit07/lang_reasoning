@@ -154,12 +154,9 @@ button {
   display: none;
 }
 .tag {
-  color: #57a8ff;
-  padding: 4px 8px;
-  border-radius: 9999px;
-  font-size: 1.2rem;
-  cursor: pointer;
-  border: 1px solid #57a8ff;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .card-actions { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
@@ -675,7 +672,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 10px;
+  padding: 15px;
 }
 
 .import-textarea-block {
@@ -776,7 +773,7 @@ button {
 .post-extra-row {
   display: grid;
   grid-template-columns: 20px 1fr;
-  gap: 8px;
+  gap: 5px;
   align-items: flex-start;
 }
 
@@ -808,8 +805,7 @@ button {
 .puzzle-chip {
   border: 1px solid #57a8ff;
   padding: 4px 8px;
-  font-size: 1.2rem;
-  border-radius: 12px;
+  border-radius: 9999px;
   color: #57a8ff;
 }
 .puzzle-chip-link {
@@ -1063,15 +1059,14 @@ button {
 }
 
 .puzzle-ref-list {
-  color: var(--muted);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 .puzzle-ref-link {
   background: none;
   border: none;
-  color: #2f6fe4;
+  color: #57a8ff;
   padding: 0;
   cursor: pointer;
   font: inherit;
@@ -1082,7 +1077,6 @@ button {
 .puzzle-note-list { display: flex; flex-direction: column; gap: 6px; }
 .puzzle-note {
   background: #f4f7fb;
-  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 8px;
 }
@@ -1108,6 +1102,4 @@ button {
 }
 
 .puzzle-list-block { display: flex; flex-direction: column; gap: 6px; }
-.puzzle-list-label { font-weight: 700; color: #334e68; }
-
-.puzzle-chip-list { margin-top: 4px; }
+.puzzle-list-label { color: #334e68; }
