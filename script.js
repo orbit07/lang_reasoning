@@ -12,6 +12,11 @@ const defaultData = () => ({
   lastId: 0,
 });
 
+function generateStableId(prefix) {
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `${prefix}-${Date.now().toString(36)}-${rand}`;
+}
+
 const state = {
   data: defaultData(),
   currentTab: 'timeline',
@@ -77,6 +82,7 @@ function loadData() {
   }
 
   ensureSpeakerFields(state.data);
+  ensureReplyFields(state.data);
   ensurePostFields(state.data);
   ensurePuzzleFields(state.data);
 }
@@ -145,6 +151,12 @@ function ensureImageId(dataUrl) {
   return id;
 }
 
+function ensureRefIds(items = [], prefix) {
+  items.forEach((item) => {
+    if (!item.refId) item.refId = generateStableId(prefix);
+  });
+}
+
 function ensureSpeakerFields(data) {
   const sync = (items = []) => {
     items.forEach((item) => {
@@ -161,6 +173,7 @@ function ensureSpeakerFields(data) {
 }
 
 function ensurePostFields(data) {
+  ensureRefIds(data?.posts, 'post');
   (data?.posts || []).forEach((post) => {
     const pinnedLegacy = post.pinned ?? post.liked ?? false;
     post.pinned = Boolean(pinnedLegacy);
@@ -175,7 +188,12 @@ function ensurePostFields(data) {
   });
 }
 
+function ensureReplyFields(data) {
+  ensureRefIds(data?.replies, 'reply');
+}
+
 function ensurePuzzleFields(data) {
+  ensureRefIds(data?.puzzles, 'puzzle');
   const defaultReview = () => ({ intervalIndex: 0, nextReviewDate: null, history: [] });
   (data?.puzzles || []).forEach((puzzle, index) => {
     puzzle.id = puzzle.id || `puzzle_${index + 1}`;
@@ -183,10 +201,10 @@ function ensurePuzzleFields(data) {
     puzzle.language = puzzle.language || 'ja';
     puzzle.pronunciation = puzzle.pronunciation || '';
     puzzle.post = Array.isArray(puzzle.post)
-      ? puzzle.post.map((ref) => ({
-        postId: Number(ref.postId) || '',
-        textIndex: Number(ref.textIndex) || 0,
-      }))
+      ? puzzle.post.map((ref) => {
+        const normalized = normalizePostRef(ref);
+        return normalized || { postId: '', refId: '', textIndex: 0 };
+      })
       : [];
     puzzle.relatedPuzzleIds = Array.isArray(puzzle.relatedPuzzleIds) ? puzzle.relatedPuzzleIds : [];
     puzzle.notes = Array.isArray(puzzle.notes)
@@ -590,6 +608,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
     if (mode === 'reply') {
       const reply = {
         id: nextId(),
+        refId: generateStableId('reply'),
         postId: parentId,
         texts: textBlocks,
         tags,
@@ -627,6 +646,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
     } else {
       const post = {
         id: nextId(),
+        refId: generateStableId('post'),
         texts: textBlocks,
         tags,
         createdAt: Date.now(),
@@ -683,30 +703,79 @@ function parseTagInput(value) {
     .filter((t) => t.length > 0);
 }
 
-function formatPostRef(ref) {
-  if (!ref || ref.postId === '' || ref.postId === null || ref.postId === undefined) return '';
-  const postId = Number(ref.postId);
+function findPostByIdentifiers({ postId, refId } = {}) {
+  if (refId) {
+    const byRef = state.data.posts.find((p) => p.refId === refId);
+    if (byRef) return byRef;
+  }
+
+  const numericId = Number(postId);
+  if (Number.isFinite(numericId)) {
+    return state.data.posts.find((p) => p.id === numericId) || null;
+  }
+  return null;
+}
+
+function findReplyByIdentifiers({ replyId, replyRefId } = {}) {
+  if (replyRefId) {
+    const byRef = state.data.replies.find((r) => r.refId === replyRefId);
+    if (byRef) return byRef;
+  }
+
+  const numericId = Number(replyId);
+  if (Number.isFinite(numericId)) {
+    return state.data.replies.find((r) => r.id === numericId) || null;
+  }
+  return null;
+}
+
+function normalizePostRef(ref) {
+  if (!ref) return null;
   const textIndex = Number(ref.textIndex ?? 0);
-  if (!Number.isFinite(postId)) return '';
-  return `post${postId}.${Number.isFinite(textIndex) ? textIndex : 0}`;
+  const safeIndex = Number.isFinite(textIndex) ? textIndex : 0;
+  const reply = findReplyByIdentifiers(ref);
+  const post = findPostByIdentifiers({ postId: ref.postId ?? reply?.postId, refId: ref.refId });
+  const postId = post?.id
+    ?? (Number.isFinite(Number(ref.postId)) ? Number(ref.postId) : null)
+    ?? (Number.isFinite(Number(reply?.postId)) ? Number(reply?.postId) : null);
+  const refId = ref.refId || reply?.refId || post?.refId || null;
+  const replyId = reply?.id ?? (Number.isFinite(Number(ref.replyId)) ? Number(ref.replyId) : null);
+
+  if (!refId && !Number.isFinite(postId)) return null;
+
+  return { postId, refId, replyId, textIndex: safeIndex };
+}
+
+function formatPostRef(ref) {
+  const normalized = normalizePostRef(ref);
+  if (!normalized) return '';
+  const base = normalized.refId || (Number.isFinite(normalized.postId) ? `post${normalized.postId}` : '');
+  if (!base) return '';
+  const textIndex = Number.isFinite(normalized.textIndex) ? normalized.textIndex : 0;
+  return `${base}.${textIndex}`;
 }
 
 function parsePostRefInput(value) {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
-  const patterns = [
-    /post(\d+)\s*\.\s*(\d+)/i,
-    /postId(\d+)\s*\.\s*textIndex(\d+)/i,
-  ];
-
-  const match = patterns.map((regex) => trimmed.match(regex)).find(Boolean);
+  const match = trimmed.match(/([\w-]+)\s*\.\s*(\d+)/i);
   if (!match) return null;
 
-  const postId = Number(match[1]);
+  const base = match[1];
   const textIndex = Number(match[2]);
-  if (!Number.isFinite(postId) || !Number.isFinite(textIndex)) return null;
-  return { postId, textIndex };
+  if (!Number.isFinite(textIndex)) return null;
+
+  const baseWithoutPrefix = base.replace(/^post/i, '');
+  const post = findPostByIdentifiers({ refId: base, postId: baseWithoutPrefix });
+  const reply = findReplyByIdentifiers({ replyRefId: base, replyId: baseWithoutPrefix });
+  const postId = post?.id
+    ?? reply?.postId
+    ?? (Number.isFinite(Number(baseWithoutPrefix)) ? Number(baseWithoutPrefix) : null);
+  const refId = post?.refId || reply?.refId || (post ? post.refId : null) || (postId === null ? base : null);
+  const replyId = reply?.id ?? null;
+
+  return normalizePostRef({ postId, refId, textIndex, replyId });
 }
 
 function focusElementWithHighlight(elementId) {
@@ -742,13 +811,23 @@ function activateTab(tabName) {
   }
 }
 
-function navigateToPost(postId, textIndex = null) {
+function navigateToPost(postRef, textIndex = null) {
   activateTab('timeline');
   renderTimeline({ forceRenderAll: true });
+  const normalized = normalizePostRef(
+    typeof postRef === 'object' && postRef !== null
+      ? { ...postRef, textIndex: postRef.textIndex ?? textIndex }
+      : { postId: postRef, textIndex },
+  );
+  const targetPost = normalized ? findPostByIdentifiers(normalized) : null;
+  const targetPostId = targetPost?.id ?? normalized?.postId;
   requestAnimationFrame(() => {
-    const targetTextId = Number.isFinite(Number(textIndex)) ? `post-text-${postId}-${textIndex}` : null;
-    const found = focusElementWithHighlight(targetTextId) || focusElementWithHighlight(`post-card-${postId}`);
-    if (!found) console.warn('ターゲットのポストが見つかりませんでした', postId, textIndex);
+    const targetTextId = Number.isFinite(Number(normalized?.textIndex)) && targetPostId !== null
+      ? `post-text-${targetPostId}-${normalized.textIndex}`
+      : null;
+    const found = (targetTextId && focusElementWithHighlight(targetTextId))
+      || (targetPostId !== null && focusElementWithHighlight(`post-card-${targetPostId}`));
+    if (!found) console.warn('ターゲットのポストが見つかりませんでした', postRef, textIndex);
   });
 }
 
@@ -781,7 +860,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     text: '',
     language: 'ja',
     pronunciation: '',
-    post: [{ postId: '', textIndex: 0 }],
+    post: [{ postId: '', refId: '', textIndex: 0 }],
     relatedPuzzleIds: [],
     notes: [{ id: `note_${Date.now()}`, text: '', createdAt: Date.now() }],
     isSolved: false,
@@ -893,7 +972,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   postContainer.className = 'puzzle-multi-list';
   const postLabel = document.createElement('div');
   postLabel.className = 'tag-label';
-  postLabel.textContent = '手がかり（post6.0）';
+  postLabel.textContent = '手がかり（post-xxxx.0）';
   const postList = document.createElement('div');
   postList.className = 'puzzle-field-list';
   const addPostBtn = document.createElement('button');
@@ -901,12 +980,12 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   addPostBtn.className = 'add-text-button';
   addPostBtn.textContent = '＋';
 
-  const createPostRow = (ref = { postId: '', textIndex: 0 }) => {
+  const createPostRow = (ref = { postId: '', refId: '', textIndex: 0 }) => {
     const row = document.createElement('div');
     row.className = 'puzzle-ref-row';
     const postInput = document.createElement('input');
     postInput.type = 'text';
-    postInput.placeholder = 'post6.0';
+    postInput.placeholder = 'post-xxxx.0';
     postInput.className = 'tag-input';
     postInput.value = formatPostRef(ref);
     const remove = document.createElement('button');
@@ -1113,6 +1192,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     } else {
       const puzzle = {
         id: `puzzle_${nextId()}`,
+        refId: generateStableId('puzzle'),
         text: trimmedText,
         language: langSelect.value,
         pronunciation: pronunciationInput.value.trim(),
@@ -1512,15 +1592,14 @@ function renderPuzzleCard(puzzle) {
     list.className = 'puzzle-ref-list';
     puzzle.post.forEach((ref) => {
       const item = document.createElement('li');
-      const label = formatPostRef(ref) || `Post #${ref.postId} / textIndex ${ref.textIndex}`;
-      const postId = Number(ref.postId);
-      const textIndex = Number(ref.textIndex ?? 0);
-      if (Number.isFinite(postId)) {
+      const normalized = normalizePostRef(ref);
+      const label = formatPostRef(normalized) || `Post #${ref.postId} / textIndex ${ref.textIndex}`;
+      if (normalized) {
         const link = document.createElement('button');
         link.type = 'button';
         link.className = 'puzzle-ref-link';
         link.textContent = label;
-        link.addEventListener('click', () => navigateToPost(postId, textIndex));
+        link.addEventListener('click', () => navigateToPost(normalized));
         item.appendChild(link);
       } else {
         item.textContent = label;
@@ -1706,7 +1785,7 @@ function renderPostCard(post, options = {}) {
 
       const referenceRow = document.createElement('div');
       referenceRow.className = 'post-ref-row timeline-ref-row';
-      const refValue = formatPostRef({ postId: post.id, textIndex });
+      const refValue = formatPostRef({ postId: post.id, refId: post.refId, textIndex });
       const refText = document.createElement('span');
       refText.className = 'post-ref-text';
       refText.textContent = refValue;
@@ -1886,7 +1965,12 @@ function renderPostCard(post, options = {}) {
 
       const referenceRow = document.createElement('div');
       referenceRow.className = 'post-ref-row timeline-ref-row';
-      const refValue = formatPostRef({ postId: post.id, textIndex: refIndex });
+      const refValue = formatPostRef({
+        postId: post.id,
+        refId: reply.refId || post.refId,
+        replyId: reply.id,
+        textIndex: refIndex,
+      });
       const refText = document.createElement('span');
       refText.className = 'post-ref-text';
       refText.textContent = refValue;
