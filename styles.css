@@ -913,27 +913,8 @@ button {
   flex-direction: column;
 }
 
-.puzzle-form-section.hidden {
-  display: none !important;
-}
-
 .puzzle-language-row {
   flex-wrap: wrap;
-}
-
-.toggle-button {
-  min-width: 80px;
-  padding: 6px 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: var(--muted);
-}
-
-.toggle-button.active {
-  background: #d3e5ff;
-  color: var(--primary);
-  border-color: #2f6fe4;
 }
 
 .puzzle-multi-list {

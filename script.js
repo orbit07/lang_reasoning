@@ -1082,8 +1082,12 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
 
   const tagsRow = document.createElement('div');
   const solutionSection = document.createElement('div');
-  solutionSection.className = 'puzzle-form-section active';
+  solutionSection.className = `puzzle-form-section${base.isSolved ? ' active' : ''}`;
   solutionSection.append(meaningRow, alternativesWrap, examplesWrap);
+
+  if (!base.isSolved) {
+    secondaryTextContainer.classList.add('hidden');
+  }
 
   container.append(textContainer, clueSection, solutionSection, secondaryTextContainer);
   fragment.append(container);
@@ -1134,6 +1138,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     const alternatives = collectList(alternativesWrap);
     const examples = collectList(examplesWrap);
     const meaning = meaningArea.value.trim();
+    const solvedActive = base.isSolved;
 
     if (mode === 'edit' && targetPuzzle) {
       targetPuzzle.text = trimmedText;
@@ -1148,6 +1153,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
       targetPuzzle.alternatives = alternatives;
       targetPuzzle.examples = examples;
       targetPuzzle.tags = tagValues;
+      targetPuzzle.isSolved = solvedActive;
+      targetPuzzle.solvedAt = solvedActive ? targetPuzzle.solvedAt || now : null;
       targetPuzzle.updatedAt = now;
     } else {
       const puzzle = {
@@ -1161,8 +1168,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
         post: postRefs,
         relatedPuzzleIds: relatedIds,
         notes: noteTexts,
-        isSolved: false,
-        solvedAt: null,
+        isSolved: solvedActive,
+        solvedAt: solvedActive ? now : null,
         meaning,
         alternatives,
         examples,
