@@ -368,6 +368,66 @@ function createSpeakerBadge(type = 'none') {
   return badge;
 }
 
+function readTextBlockValues(container) {
+  if (!container) return null;
+  const wrapper = container.querySelector('.text-area-wrapper');
+  if (!wrapper) return null;
+  return {
+    content: wrapper.querySelector('textarea')?.value.trim() || '',
+    language: wrapper.querySelector('.language-select-input')?.value || 'ja',
+    pronunciation: wrapper.querySelector('.pronunciation-input')?.value.trim() || '',
+    speaker: wrapper.querySelector('.speaker-select-value')?.value || 'none',
+  };
+}
+
+function createTextBlockDisplay({ id = '', content = '', language = 'ja', pronunciation = '', speaker = 'none' }) {
+  const textGroup = document.createElement('div');
+  textGroup.className = 'text-block-group';
+  if (id) textGroup.id = id;
+
+  const speakerBadge = createSpeakerBadge(speaker);
+  textGroup.appendChild(speakerBadge);
+
+  const textBlock = document.createElement('div');
+  textBlock.className = 'text-block';
+
+  const label = document.createElement('div');
+  label.className = 'text-label';
+  const langLabel = getLanguageLabel(language);
+  const option = langOptions.find((opt) => opt.value === language);
+  if (option?.speakable) {
+    const speakBtn = document.createElement('button');
+    speakBtn.type = 'button';
+    speakBtn.className = 'text-action-button text-label-button';
+    speakBtn.innerHTML = `<img src="img/vol.svg" alt="" width="16" class="icon-inline"> ${langLabel}`;
+    speakBtn.addEventListener('click', () => playSpeech(content, language));
+    label.append(speakBtn);
+  } else {
+    const langText = document.createElement('span');
+    langText.textContent = langLabel;
+    label.append(langText);
+  }
+
+  const contentEl = document.createElement('div');
+  contentEl.className = 'text-content';
+  contentEl.textContent = content;
+  textBlock.append(label, contentEl);
+
+  if (pronunciation) {
+    const pron = document.createElement('div');
+    pron.className = 'pronunciation';
+    pron.textContent = pronunciation;
+    textBlock.appendChild(pron);
+  }
+
+  const referenceRow = document.createElement('div');
+  referenceRow.className = 'post-ref-row timeline-ref-row';
+  textBlock.appendChild(referenceRow);
+
+  textGroup.appendChild(textBlock);
+  return textGroup;
+}
+
 function createTextBlockInput(value = '', lang = 'ja', pronunciation = '', speakerType = 'me', removable = true, onRemove = null) {
   const wrapper = document.createElement('div');
   wrapper.className = 'text-area-wrapper';
@@ -1230,6 +1290,67 @@ function collectTextEntries() {
   return entries;
 }
 
+function renderDashboardCard() {
+  const cardArea = document.getElementById('dashboard-card-area');
+  if (!cardArea) return;
+
+  const textContainers = document.querySelectorAll('.puzzle-form #puzzle-text-block-container');
+  const frontData = textContainers[1] ? readTextBlockValues(textContainers[1]) : null;
+  const backData = textContainers[0] ? readTextBlockValues(textContainers[0]) : null;
+
+  cardArea.innerHTML = '';
+
+  if ((!frontData || !frontData.content) && (!backData || !backData.content)) {
+    const helper = document.createElement('div');
+    helper.className = 'empty-state';
+    helper.textContent = 'puzzleフォームの入力内容がここに表示されます。';
+    cardArea.appendChild(helper);
+    return;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'dashboard-flashcard';
+
+  const frontFace = document.createElement('div');
+  frontFace.className = 'flashcard-face flashcard-front active';
+  if (frontData?.content) {
+    frontFace.appendChild(createTextBlockDisplay({ ...frontData, id: 'dashboard-card-front' }));
+  } else {
+    const helper = document.createElement('div');
+    helper.className = 'helper';
+    helper.textContent = '表面のテキストがありません。';
+    frontFace.appendChild(helper);
+  }
+
+  const backFace = document.createElement('div');
+  backFace.className = 'flashcard-face flashcard-back';
+  if (backData?.content) {
+    backFace.appendChild(createTextBlockDisplay({ ...backData, id: 'dashboard-card-back' }));
+  } else {
+    const helper = document.createElement('div');
+    helper.className = 'helper';
+    helper.textContent = '裏面のテキストがありません。';
+    backFace.appendChild(helper);
+  }
+
+  const toggleBtn = document.createElement('button');
+  toggleBtn.type = 'button';
+  toggleBtn.className = 'flashcard-toggle';
+
+  const setFlipped = (flipped) => {
+    card.classList.toggle('flipped', flipped);
+    frontFace.classList.toggle('active', !flipped);
+    backFace.classList.toggle('active', flipped);
+    toggleBtn.textContent = flipped ? '表面へ' : '裏面へ';
+  };
+
+  toggleBtn.addEventListener('click', () => setFlipped(!card.classList.contains('flipped')));
+  setFlipped(false);
+
+  card.append(frontFace, backFace, toggleBtn);
+  cardArea.appendChild(card);
+}
+
 function getDateKey(ts) {
   const d = new Date(ts);
   const year = d.getFullYear();
@@ -1255,6 +1376,7 @@ function render() {
 }
 
 function renderDashboard() {
+  renderDashboardCard();
   const chartContainer = document.getElementById('dashboard-chart-container');
   const countsContainer = document.getElementById('dashboard-text-counts');
   const heatmapContainer = document.getElementById('dashboard-heatmap-container');
@@ -2782,6 +2904,12 @@ function setupGlobalEvents() {
   if (searchTypeSelect) searchTypeSelect.addEventListener('change', runSearch);
   document.getElementById('search-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch(); });
   window.addEventListener('beforeunload', () => window.speechSynthesis.cancel());
+
+  document.addEventListener('input', (event) => {
+    if (state.currentTab !== 'dashboard') return;
+    if (!event.target.closest('.puzzle-form')) return;
+    renderDashboard();
+  });
 }
 
 function registerServiceWorker() {
