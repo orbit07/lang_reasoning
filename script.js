@@ -1085,11 +1085,31 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   solutionSection.className = `puzzle-form-section${base.isSolved ? ' active' : ''}`;
   solutionSection.append(meaningRow, alternativesWrap, examplesWrap);
 
-  if (!base.isSolved) {
-    secondaryTextContainer.classList.add('hidden');
-  }
+  const solutionToggle = document.createElement('button');
+  solutionToggle.type = 'button';
+  solutionToggle.className = 'toggle-button';
+  solutionToggle.setAttribute('aria-pressed', base.isSolved);
 
-  container.append(textContainer, clueSection, solutionSection, secondaryTextContainer);
+  const solutionToggleRow = document.createElement('div');
+  solutionToggleRow.className = 'puzzle-solution-toggle';
+  solutionToggleRow.appendChild(solutionToggle);
+
+  const updateSolutionVisibility = () => {
+    const isActive = solutionToggle.classList.contains('active');
+    solutionToggle.textContent = isActive ? '解決 ON' : '解決 OFF';
+    solutionToggle.setAttribute('aria-pressed', isActive);
+    solutionSection.classList.toggle('hidden', !isActive);
+  };
+
+  solutionToggle.addEventListener('click', () => {
+    solutionToggle.classList.toggle('active');
+    updateSolutionVisibility();
+  });
+
+  solutionToggle.classList.toggle('active', base.isSolved);
+  updateSolutionVisibility();
+
+  container.append(textContainer, clueSection, solutionToggleRow, solutionSection, secondaryTextContainer);
   fragment.append(container);
 
   const actions = document.createElement('div');
@@ -1138,7 +1158,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     const alternatives = collectList(alternativesWrap);
     const examples = collectList(examplesWrap);
     const meaning = meaningArea.value.trim();
-    const solvedActive = base.isSolved;
+    const solvedActive = solutionToggle.classList.contains('active');
 
     if (mode === 'edit' && targetPuzzle) {
       targetPuzzle.text = trimmedText;

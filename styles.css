@@ -913,6 +913,16 @@ button {
   flex-direction: column;
 }
 
+.puzzle-form-section.hidden {
+  display: none !important;
+}
+
+.puzzle-solution-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin: 6px 0 2px;
+}
+
 .puzzle-language-row {
   flex-wrap: wrap;
 }
