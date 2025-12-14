@@ -1014,7 +1014,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   notesContainer.append(notesLabel, notesList, addNoteBtn);
 
   const secondaryTextContainer = document.createElement('div');
-  secondaryTextContainer.id = 'puzzle-text-block-container-secondary';
+  secondaryTextContainer.id = 'puzzle-text-block-container';
   secondaryTextContainer.className = 'text-block-container';
   const secondaryTextBlock = createTextBlockInput('', 'ja', '', 'none', true);
   const secondaryRemoveBtn = secondaryTextBlock.querySelector('.remove-text-btn');
@@ -1023,13 +1023,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
 
   const clueSection = document.createElement('div');
   clueSection.className = 'puzzle-form-section active';
-  clueSection.append(notesContainer, tagsSection, postContainer, relatedRow, textContainer);
-
-
-  const textSection = document.createElement('div');
-  textSection.className = 'puzzle-form-section active';
-  textSection.appendChild(secondaryTextContainer);
-  clueSection.appendChild(textSection);
+  clueSection.append(notesContainer, tagsSection, postContainer, relatedRow);
 
   const meaningRow = document.createElement('div');
   meaningRow.className = 'form-row';
@@ -1092,12 +1086,10 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
 
   const tagsRow = document.createElement('div');
   const solutionSection = document.createElement('div');
-  solutionSection.className = 'puzzle-form-section';
-  if (base.isSolved) solutionSection.classList.add('active');
+  solutionSection.className = 'puzzle-form-section active';
   solutionSection.append(meaningRow, alternativesWrap, examplesWrap);
 
-  container.append(clueSection);
-  if (base.isSolved) container.append(solutionSection);
+  container.append(textContainer, clueSection, solutionSection, secondaryTextContainer);
   fragment.append(container);
 
   const actions = document.createElement('div');
