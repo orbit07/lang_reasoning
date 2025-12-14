@@ -1029,6 +1029,24 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   clueSection.className = 'puzzle-form-section active';
   clueSection.append(notesContainer, tagsSection, postContainer, relatedRow, textContainer);
 
+  const secondaryTextContainer = document.createElement('div');
+  secondaryTextContainer.id = 'puzzle-text-block-container-secondary';
+  secondaryTextContainer.className = 'text-block-container';
+  const secondaryTextBlock = createTextBlockInput('', 'ja', '', 'none', true);
+  const secondaryRemoveBtn = secondaryTextBlock.querySelector('.remove-text-btn');
+  if (secondaryRemoveBtn) secondaryRemoveBtn.disabled = true;
+  secondaryTextContainer.appendChild(secondaryTextBlock);
+
+  const textSection = document.createElement('div');
+  textSection.className = 'puzzle-form-section active';
+  textSection.appendChild(secondaryTextContainer);
+  clueSection.appendChild(textSection);
+
+  const textSection = document.createElement('div');
+  textSection.className = 'puzzle-form-section active';
+  textSection.appendChild(textContainer);
+  clueSection.appendChild(textSection);
+
   const meaningRow = document.createElement('div');
   meaningRow.className = 'form-row';
   const meaningLabel = document.createElement('label');
@@ -1094,7 +1112,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   if (base.isSolved) solutionSection.classList.add('active');
   solutionSection.append(meaningRow, alternativesWrap, examplesWrap);
 
-  container.append(clueSection, textSection);
+  container.append(clueSection);
   if (base.isSolved) container.append(solutionSection);
   fragment.append(container);
 
