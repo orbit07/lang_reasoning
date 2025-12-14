@@ -1015,7 +1015,20 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
 
   const clueSection = document.createElement('div');
   clueSection.className = 'puzzle-form-section active';
-  clueSection.append(notesContainer, tagsSection, postContainer, relatedRow);
+  clueSection.append(notesContainer, tagsSection, postContainer, relatedRow, textContainer);
+
+  const secondaryTextContainer = document.createElement('div');
+  secondaryTextContainer.id = 'puzzle-text-block-container-secondary';
+  secondaryTextContainer.className = 'text-block-container';
+  const secondaryTextBlock = createTextBlockInput('', 'ja', '', 'none', true);
+  const secondaryRemoveBtn = secondaryTextBlock.querySelector('.remove-text-btn');
+  if (secondaryRemoveBtn) secondaryRemoveBtn.disabled = true;
+  secondaryTextContainer.appendChild(secondaryTextBlock);
+
+  const textSection = document.createElement('div');
+  textSection.className = 'puzzle-form-section active';
+  textSection.appendChild(secondaryTextContainer);
+  clueSection.appendChild(textSection);
 
   const textSection = document.createElement('div');
   textSection.className = 'puzzle-form-section active';
