@@ -1014,8 +1014,11 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   const secondaryTextContainer = document.createElement('div');
   secondaryTextContainer.id = 'puzzle-text-block-container';
   secondaryTextContainer.className = 'text-block-container';
+  const secondaryLabel = document.createElement('div');
+  secondaryLabel.className = 'tag-label';
+  secondaryLabel.textContent = '再調査の表面';
   const secondaryTextBlock = createTextBlockInput('', 'ja', '', 'none', false);
-  secondaryTextContainer.appendChild(secondaryTextBlock);
+  secondaryTextContainer.append(secondaryLabel, secondaryTextBlock);
 
   const clueSection = document.createElement('div');
   clueSection.className = 'puzzle-form-section active';
