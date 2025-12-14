@@ -2165,6 +2165,8 @@ function toggleSearchSolvedFilter() {
   const nextState = !btn.classList.contains('active');
   btn.classList.toggle('active', nextState);
   btn.setAttribute('aria-pressed', nextState);
+  const icon = btn.querySelector('img');
+  if (icon) icon.src = nextState ? 'img/light_on.svg' : 'img/light_off.svg';
 }
 
 function togglePuzzleSolved(id) {
