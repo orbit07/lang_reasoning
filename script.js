@@ -898,10 +898,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     base.language,
     base.pronunciation,
     base.speaker || base.speaker_type || 'none',
-    true,
+    false,
   );
-  const removeBtn = textBlock.querySelector('.remove-text-btn');
-  if (removeBtn) removeBtn.disabled = true;
   textContainer.appendChild(textBlock);
 
   const tagsSection = document.createElement('div');
@@ -1016,9 +1014,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   const secondaryTextContainer = document.createElement('div');
   secondaryTextContainer.id = 'puzzle-text-block-container';
   secondaryTextContainer.className = 'text-block-container';
-  const secondaryTextBlock = createTextBlockInput('', 'ja', '', 'none', true);
-  const secondaryRemoveBtn = secondaryTextBlock.querySelector('.remove-text-btn');
-  if (secondaryRemoveBtn) secondaryRemoveBtn.disabled = true;
+  const secondaryTextBlock = createTextBlockInput('', 'ja', '', 'none', false);
   secondaryTextContainer.appendChild(secondaryTextBlock);
 
   const clueSection = document.createElement('div');
