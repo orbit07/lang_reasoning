@@ -191,6 +191,48 @@ button {
   padding: 40px 10px;
 }
 
+.dashboard-card-area {
+  padding: 20px 12px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.dashboard-flashcard {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flashcard-face {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+  display: none;
+}
+
+.flashcard-face.active { display: block; }
+
+.dashboard-flashcard.flipped .flashcard-front { display: none; }
+
+.dashboard-flashcard.flipped .flashcard-back { display: block; }
+
+.flashcard-toggle {
+  align-self: flex-end;
+  background: #f4f7fb;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.flashcard-toggle:hover { background: #eaf3ff; }
+.flashcard-toggle:active { transform: translateY(1px); }
+
 .dashboard-chart-container {
   position: relative;
   width: 30vw;
