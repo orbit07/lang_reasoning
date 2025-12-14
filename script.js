@@ -1142,10 +1142,11 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
 
   const tagsRow = document.createElement('div');
   const solutionSection = document.createElement('div');
-  solutionSection.className = `puzzle-form-section${base.isSolved ? ' active' : ''}`;
+  const solvedActive = Boolean(base.isSolved);
+  solutionSection.className = `puzzle-form-section${solvedActive ? ' active' : ''}`;
   solutionSection.append(meaningRow, alternativesWrap, examplesWrap);
 
-  if (!base.isSolved) {
+  if (!solvedActive) {
     secondaryTextContainer.classList.add('hidden');
   }
 
@@ -1198,8 +1199,6 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     const alternatives = collectList(alternativesWrap);
     const examples = collectList(examplesWrap);
     const meaning = meaningArea.value.trim();
-    const solvedActive = solutionToggle.classList.contains('active');
-
     if (mode === 'edit' && targetPuzzle) {
       targetPuzzle.text = trimmedText;
       targetPuzzle.language = langSelect.value;
