@@ -987,6 +987,11 @@ button {
   border: 1px solid var(--border);
 }
 
+.search-ref-row {
+  width: 100%;
+  justify-content: space-between;
+}
+
 .copy-ref-button {
   cursor: pointer;
   display: flex;

@@ -2230,6 +2230,18 @@ function createSearchResultCard(item) {
     card.appendChild(detail);
   }
 
+  if (item.refText) {
+    const refRow = document.createElement('div');
+    refRow.className = 'post-ref-row search-ref-row';
+
+    const refText = document.createElement('span');
+    refText.className = 'post-ref-text';
+    refText.textContent = item.refText;
+
+    refRow.appendChild(refText);
+    card.appendChild(refRow);
+  }
+
   return card;
 }
 
@@ -2265,6 +2277,15 @@ function runSearch() {
 
   const results = [];
 
+  const getPostRefValue = ({ post, reply = null, textIndex = 0 } = {}) => formatPostRef({
+    postId: post?.id,
+    refId: reply?.refId || post?.refId,
+    replyId: reply?.id,
+    textIndex,
+  });
+
+  const getPuzzleRefValue = (puzzle) => puzzle?.refId || puzzle?.id || '';
+
   if (searchType === 'all' || searchType === 'clue') {
     state.data.posts
       .filter((p) => !p.isDeleted)
@@ -2287,21 +2308,26 @@ function runSearch() {
               parent: post,
               main: t.content,
               detail: null,
+              refText: getPostRefValue({ post, textIndex }),
               onClick: () => navigateToPost(post.id, textIndex),
             });
           });
 
+          let replyTextOffset = post.texts.length;
           replies.forEach((reply) => {
-            (reply.texts || []).forEach((t) => {
+            (reply.texts || []).forEach((t, replyTextIndex) => {
               if (!textMatchesAnyTerm(t.content, textTerms)) return;
+              const refIndex = replyTextOffset + replyTextIndex;
               results.push({
                 parentType: 'reply',
                 parent: post,
                 main: t.content,
                 detail: null,
+                refText: getPostRefValue({ post, reply, textIndex: refIndex }),
                 onClick: () => navigateToReply(post.id, reply.id),
               });
             });
+            replyTextOffset += reply.texts?.length || 0;
           });
         }
 
@@ -2315,6 +2341,7 @@ function runSearch() {
               parent: post,
               main: getPostPrimaryText(post) || '投稿',
               detail: `#${tag}`,
+              refText: getPostRefValue({ post, textIndex: 0 }),
               onClick: () => navigateToPost(post.id),
             });
           });
@@ -2344,6 +2371,7 @@ function runSearch() {
             parent: puzzle,
             main: puzzle.text,
             detail: null,
+            refText: getPuzzleRefValue(puzzle),
             onClick: () => navigateToPuzzle(puzzle.id),
           });
         }
@@ -2355,6 +2383,7 @@ function runSearch() {
             parent: puzzle,
             main: puzzle.text,
             detail: buildExcerpt(note.text, textTerms),
+            refText: getPuzzleRefValue(puzzle),
             onClick: () => navigateToPuzzle(puzzle.id),
           });
         });
@@ -2365,6 +2394,7 @@ function runSearch() {
             parent: puzzle,
             main: puzzle.text,
             detail: buildExcerpt(puzzle.meaning, textTerms),
+            refText: getPuzzleRefValue(puzzle),
             onClick: () => navigateToPuzzle(puzzle.id),
           });
         }
@@ -2377,6 +2407,7 @@ function runSearch() {
             parent: puzzle,
             main: puzzle.text,
             detail: buildExcerpt(textValue, textTerms),
+            refText: getPuzzleRefValue(puzzle),
             onClick: () => navigateToPuzzle(puzzle.id),
           });
         });
@@ -2389,6 +2420,7 @@ function runSearch() {
             parent: puzzle,
             main: puzzle.text,
             detail: buildExcerpt(textValue, textTerms),
+            refText: getPuzzleRefValue(puzzle),
             onClick: () => navigateToPuzzle(puzzle.id),
           });
         });
@@ -2404,6 +2436,7 @@ function runSearch() {
             parent: puzzle,
             main: puzzle.text,
             detail: `#${tag}`,
+            refText: getPuzzleRefValue(puzzle),
             onClick: () => navigateToPuzzle(puzzle.id),
           });
         });
