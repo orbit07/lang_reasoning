@@ -1082,7 +1082,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
 
   const tagsRow = document.createElement('div');
   const solutionSection = document.createElement('div');
-  solutionSection.className = 'puzzle-form-section active';
+  solutionSection.className = `puzzle-form-section${base.isSolved ? ' active' : ''}`;
   solutionSection.append(meaningRow, alternativesWrap, examplesWrap);
 
   const solutionToggle = document.createElement('button');
