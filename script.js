@@ -1013,6 +1013,18 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   });
   notesContainer.append(notesLabel, notesList, addNoteBtn);
 
+  const secondaryTextContainer = document.createElement('div');
+  secondaryTextContainer.id = 'puzzle-text-block-container-secondary';
+  secondaryTextContainer.className = 'text-block-container';
+  const secondaryTextBlock = createTextBlockInput('', 'ja', '', 'none', true);
+  const secondaryRemoveBtn = secondaryTextBlock.querySelector('.remove-text-btn');
+  if (secondaryRemoveBtn) secondaryRemoveBtn.disabled = true;
+  secondaryTextContainer.appendChild(secondaryTextBlock);
+
+  const textSection = document.createElement('div');
+  textSection.className = 'puzzle-form-section active';
+  textSection.appendChild(secondaryTextContainer);
+
   const clueSection = document.createElement('div');
   clueSection.className = 'puzzle-form-section active';
   clueSection.append(notesContainer, tagsSection, postContainer, relatedRow, textContainer);
