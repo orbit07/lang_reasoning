@@ -200,6 +200,12 @@ function ensureReplyFields(data) {
 function ensurePuzzleFields(data) {
   ensureRefIds(data?.puzzles, 'puzzle');
   const defaultReview = () => ({ intervalIndex: 0, nextReviewDate: null, history: [] });
+  const defaultTextBlock = () => ({
+    content: '',
+    language: 'ja',
+    pronunciation: '',
+    speaker: 'none',
+  });
   (data?.puzzles || []).forEach((puzzle, index) => {
     puzzle.id = puzzle.id || `puzzle_${index + 1}`;
     puzzle.text = puzzle.text || '';
@@ -207,6 +213,7 @@ function ensurePuzzleFields(data) {
     puzzle.speaker = puzzle.speaker || puzzle.speaker_type || 'none';
     puzzle.speaker_type = puzzle.speaker;
     puzzle.pronunciation = puzzle.pronunciation || '';
+    puzzle.solution = { ...defaultTextBlock(), ...(puzzle.solution || {}) };
     puzzle.post = Array.isArray(puzzle.post)
       ? puzzle.post.map((ref) => {
         const normalized = normalizePostRef(ref);
@@ -931,6 +938,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     language: 'ja',
     speaker: 'none',
     pronunciation: '',
+    solution: { content: '', language: 'ja', pronunciation: '', speaker: 'none' },
     post: [{ postId: '', refId: '', textIndex: 0 }],
     relatedPuzzleIds: [],
     notes: [{ id: `note_${Date.now()}`, text: '', createdAt: Date.now() }],
@@ -1074,7 +1082,13 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   const secondaryTextContainer = document.createElement('div');
   secondaryTextContainer.id = 'puzzle-text-block-container';
   secondaryTextContainer.className = 'text-block-container';
-  const secondaryTextBlock = createTextBlockInput('', 'ja', '', 'none', false);
+  const secondaryTextBlock = createTextBlockInput(
+    base.solution?.content || '',
+    base.solution?.language || 'ja',
+    base.solution?.pronunciation || '',
+    base.solution?.speaker || 'none',
+    false,
+  );
   secondaryTextContainer.append(secondaryTextBlock);
 
   const clueSection = document.createElement('div');
@@ -1167,13 +1181,10 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
   submitBtn.textContent = mode === 'edit' ? 'Save' : 'Create';
 
   submitBtn.addEventListener('click', () => {
-    const textWrapper = textContainer.querySelector('.text-area-wrapper');
-    const textArea = textWrapper?.querySelector('textarea');
-    const langSelect = textWrapper?.querySelector('.language-select-input');
-    const pronunciationInput = textWrapper?.querySelector('.pronunciation-input');
-    const speakerValue = textWrapper?.querySelector('.speaker-select-value')?.value || 'none';
+    const primaryText = readTextBlockValues(textContainer);
+    const solutionText = readTextBlockValues(secondaryTextContainer);
 
-    const trimmedText = textArea?.value.trim() || '';
+    const trimmedText = primaryText?.content || '';
     if (!trimmedText.length) {
       alert('テキストを入力してください');
       return;
@@ -1199,12 +1210,14 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     const alternatives = collectList(alternativesWrap);
     const examples = collectList(examplesWrap);
     const meaning = meaningArea.value.trim();
+    const normalizedSolution = solutionText || { content: '', language: 'ja', pronunciation: '', speaker: 'none' };
     if (mode === 'edit' && targetPuzzle) {
       targetPuzzle.text = trimmedText;
-      targetPuzzle.language = langSelect.value;
-      targetPuzzle.speaker = speakerValue;
-      targetPuzzle.speaker_type = speakerValue;
-      targetPuzzle.pronunciation = pronunciationInput.value.trim();
+      targetPuzzle.language = primaryText?.language || 'ja';
+      targetPuzzle.speaker = primaryText?.speaker || 'none';
+      targetPuzzle.speaker_type = targetPuzzle.speaker;
+      targetPuzzle.pronunciation = primaryText?.pronunciation || '';
+      targetPuzzle.solution = normalizedSolution;
       targetPuzzle.post = postRefs;
       targetPuzzle.relatedPuzzleIds = relatedIds;
       targetPuzzle.notes = noteTexts;
@@ -1220,10 +1233,11 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
         id: `puzzle_${nextId()}`,
         refId: generateStableId('puzzle'),
         text: trimmedText,
-        language: langSelect.value,
-        speaker: speakerValue,
-        speaker_type: speakerValue,
-        pronunciation: pronunciationInput.value.trim(),
+        language: primaryText?.language || 'ja',
+        speaker: primaryText?.speaker || 'none',
+        speaker_type: primaryText?.speaker || 'none',
+        pronunciation: primaryText?.pronunciation || '',
+        solution: normalizedSolution,
         post: postRefs,
         relatedPuzzleIds: relatedIds,
         notes: noteTexts,
@@ -1289,65 +1303,101 @@ function collectTextEntries() {
   return entries;
 }
 
-function renderDashboardCard() {
-  const cardArea = document.getElementById('dashboard-card-area');
-  if (!cardArea) return;
+function renderDashboardCard(heatmapContainer = document.getElementById('dashboard-heatmap-container')) {
+  if (!heatmapContainer) return;
 
-  const textContainers = document.querySelectorAll('.puzzle-form #puzzle-text-block-container');
-  const frontData = textContainers[1] ? readTextBlockValues(textContainers[1]) : null;
-  const backData = textContainers[0] ? readTextBlockValues(textContainers[0]) : null;
+  let cardArea = document.getElementById('dashboard-card-area');
+  if (!cardArea) {
+    cardArea = document.createElement('div');
+    cardArea.id = 'dashboard-card-area';
+    cardArea.className = 'dashboard-card-area';
+  }
+
+  if (cardArea.parentElement !== heatmapContainer) {
+    heatmapContainer.appendChild(cardArea);
+  }
 
   cardArea.innerHTML = '';
 
-  if ((!frontData || !frontData.content) && (!backData || !backData.content)) {
+  const solvedPuzzles = (state.data.puzzles || []).filter((puzzle) => puzzle.isSolved);
+  if (!solvedPuzzles.length) {
     const helper = document.createElement('div');
     helper.className = 'empty-state';
-    helper.textContent = 'puzzleフォームの入力内容がここに表示されます。';
+    helper.textContent = '解決済みの謎カードを解決オンにするとここに表示されます。';
     cardArea.appendChild(helper);
     return;
   }
 
-  const card = document.createElement('div');
-  card.className = 'dashboard-flashcard';
+  const fragment = document.createDocumentFragment();
 
-  const frontFace = document.createElement('div');
-  frontFace.className = 'flashcard-face flashcard-front active';
-  if (frontData?.content) {
-    frontFace.appendChild(createTextBlockDisplay({ ...frontData, id: 'dashboard-card-front' }));
-  } else {
-    const helper = document.createElement('div');
-    helper.className = 'helper';
-    helper.textContent = '表面のテキストがありません。';
-    frontFace.appendChild(helper);
-  }
+  solvedPuzzles.forEach((puzzle, index) => {
+    const card = document.createElement('div');
+    card.className = 'dashboard-flashcard';
+    card.dataset.puzzleId = puzzle.id;
 
-  const backFace = document.createElement('div');
-  backFace.className = 'flashcard-face flashcard-back';
-  if (backData?.content) {
-    backFace.appendChild(createTextBlockDisplay({ ...backData, id: 'dashboard-card-back' }));
-  } else {
-    const helper = document.createElement('div');
-    helper.className = 'helper';
-    helper.textContent = '裏面のテキストがありません。';
-    backFace.appendChild(helper);
-  }
+    const frontData = {
+      content: puzzle.text,
+      language: puzzle.language,
+      pronunciation: puzzle.pronunciation,
+      speaker: puzzle.speaker_type || puzzle.speaker || 'none',
+    };
 
-  const toggleBtn = document.createElement('button');
-  toggleBtn.type = 'button';
-  toggleBtn.className = 'flashcard-toggle';
+    const backData = puzzle.solution || { content: '', language: 'ja', pronunciation: '', speaker: 'none' };
 
-  const setFlipped = (flipped) => {
-    card.classList.toggle('flipped', flipped);
-    frontFace.classList.toggle('active', !flipped);
-    backFace.classList.toggle('active', flipped);
-    toggleBtn.textContent = flipped ? '表面へ' : '裏面へ';
-  };
+    const frontFace = document.createElement('div');
+    frontFace.className = 'flashcard-face flashcard-front active';
+    if (frontData?.content) {
+      frontFace.appendChild(createTextBlockDisplay({ ...frontData, id: `dashboard-card-front-${index}` }));
+    } else {
+      const helper = document.createElement('div');
+      helper.className = 'helper';
+      helper.textContent = '表面のテキストがありません。';
+      frontFace.appendChild(helper);
+    }
 
-  toggleBtn.addEventListener('click', () => setFlipped(!card.classList.contains('flipped')));
-  setFlipped(false);
+    const backFace = document.createElement('div');
+    backFace.className = 'flashcard-face flashcard-back';
+    if (backData?.content) {
+      backFace.appendChild(createTextBlockDisplay({ ...backData, id: `dashboard-card-back-${index}` }));
+    } else {
+      const helper = document.createElement('div');
+      helper.className = 'helper';
+      helper.textContent = '裏面のテキストがありません。';
+      backFace.appendChild(helper);
+    }
 
-  card.append(frontFace, backFace, toggleBtn);
-  cardArea.appendChild(card);
+    const backActions = document.createElement('div');
+    backActions.className = 'flashcard-back-actions';
+    const knownBtn = document.createElement('button');
+    knownBtn.type = 'button';
+    knownBtn.className = 'flashcard-action-button known-button';
+    knownBtn.textContent = '分かった！';
+    const unknownBtn = document.createElement('button');
+    unknownBtn.type = 'button';
+    unknownBtn.className = 'flashcard-action-button unknown-button';
+    unknownBtn.textContent = '分からなかった';
+    backActions.append(knownBtn, unknownBtn);
+    backFace.appendChild(backActions);
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'flashcard-toggle';
+
+    const setFlipped = (flipped) => {
+      card.classList.toggle('flipped', flipped);
+      frontFace.classList.toggle('active', !flipped);
+      backFace.classList.toggle('active', flipped);
+      toggleBtn.textContent = flipped ? '表面へ' : '裏面へ';
+    };
+
+    toggleBtn.addEventListener('click', () => setFlipped(!card.classList.contains('flipped')));
+    setFlipped(false);
+
+    card.append(frontFace, backFace, toggleBtn);
+    fragment.appendChild(card);
+  });
+
+  cardArea.appendChild(fragment);
 }
 
 function getDateKey(ts) {
@@ -1375,7 +1425,6 @@ function render() {
 }
 
 function renderDashboard() {
-  renderDashboardCard();
   const chartContainer = document.getElementById('dashboard-chart-container');
   const countsContainer = document.getElementById('dashboard-text-counts');
   const heatmapContainer = document.getElementById('dashboard-heatmap-container');
@@ -1558,6 +1607,8 @@ function renderDashboard() {
   });
 
   heatmapContainer.append(scrollArea, legend);
+
+  renderDashboardCard(heatmapContainer);
 
   // 最新が右端なので、右端から表示
   requestAnimationFrame(() => {
