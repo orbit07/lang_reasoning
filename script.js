@@ -193,7 +193,7 @@ function ensureSpeakerFields(data) {
   const sync = (items = []) => {
     items.forEach((item) => {
       (item.texts || []).forEach((text) => {
-        const speaker = text.speaker || text.speaker_type || 'none';
+        const speaker = text.speaker || text.speaker_type || 'me';
         text.speaker = speaker;
         text.speaker_type = speaker;
       });
@@ -277,13 +277,13 @@ function ensurePuzzleFields(data) {
     content: '',
     language: 'ja',
     pronunciation: '',
-    speaker: 'none',
+    speaker: 'me',
   });
   (data?.puzzles || []).forEach((puzzle, index) => {
     puzzle.id = puzzle.id || `puzzle_${index + 1}`;
     puzzle.text = puzzle.text || '';
     puzzle.language = puzzle.language || 'ja';
-    puzzle.speaker = puzzle.speaker || puzzle.speaker_type || 'none';
+    puzzle.speaker = puzzle.speaker || puzzle.speaker_type || 'me';
     puzzle.speaker_type = puzzle.speaker;
     puzzle.pronunciation = puzzle.pronunciation || '';
     puzzle.solution = { ...defaultTextBlock(), ...(puzzle.solution || {}) };
@@ -456,7 +456,7 @@ function readTextBlockValues(container) {
     content: wrapper.querySelector('textarea')?.value.trim() || '',
     language: wrapper.querySelector('.language-select-input')?.value || 'ja',
     pronunciation: wrapper.querySelector('.pronunciation-input')?.value.trim() || '',
-    speaker: wrapper.querySelector('.speaker-select-value')?.value || 'none',
+    speaker: wrapper.querySelector('.speaker-select-value')?.value || 'me',
   };
 }
 
@@ -637,7 +637,7 @@ function buildPostForm({ mode = 'create', targetPost = null, parentId = null }) 
   if (targetPost) {
     textAreaContainer.innerHTML = '';
     const texts = targetPost.texts || [{ content: '', language: 'ja' }];
-    texts.forEach((t) => addTextBlock(t.content, t.language, t.pronunciation || '', t.speaker_type || t.speaker || 'none'));
+    texts.forEach((t) => addTextBlock(t.content, t.language, t.pronunciation || '', t.speaker_type || t.speaker || 'me'));
   } else {
     addTextBlock();
   }
@@ -1011,9 +1011,9 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     id: '',
     text: '',
     language: 'ja',
-    speaker: 'none',
+    speaker: 'me',
     pronunciation: '',
-    solution: { content: '', language: 'ja', pronunciation: '', speaker: 'none' },
+    solution: { content: '', language: 'ja', pronunciation: '', speaker: 'me' },
     post: [{ postId: '', refId: '', textIndex: 0 }],
     relatedPuzzleIds: [],
     notes: [{ id: `note_${Date.now()}`, text: '', createdAt: Date.now() }],
@@ -1040,7 +1040,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     base.text,
     base.language,
     base.pronunciation,
-    base.speaker || base.speaker_type || 'none',
+    base.speaker || base.speaker_type || 'me',
     false,
   );
   textContainer.appendChild(textBlock);
@@ -1161,7 +1161,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     base.solution?.content || '',
     base.solution?.language || 'ja',
     base.solution?.pronunciation || '',
-    base.solution?.speaker || 'none',
+    base.solution?.speaker || 'me',
     false,
   );
   secondaryTextContainer.append(secondaryTextBlock);
@@ -1285,11 +1285,11 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
     const alternatives = collectList(alternativesWrap);
     const examples = collectList(examplesWrap);
     const meaning = meaningArea.value.trim();
-    const normalizedSolution = solutionText || { content: '', language: 'ja', pronunciation: '', speaker: 'none' };
+    const normalizedSolution = solutionText || { content: '', language: 'ja', pronunciation: '', speaker: 'me' };
     if (mode === 'edit' && targetPuzzle) {
       targetPuzzle.text = trimmedText;
       targetPuzzle.language = primaryText?.language || 'ja';
-      targetPuzzle.speaker = primaryText?.speaker || 'none';
+      targetPuzzle.speaker = primaryText?.speaker || 'me';
       targetPuzzle.speaker_type = targetPuzzle.speaker;
       targetPuzzle.pronunciation = primaryText?.pronunciation || '';
       targetPuzzle.solution = normalizedSolution;
@@ -1310,8 +1310,8 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
         refId: generateStableId('puzzle'),
         text: trimmedText,
         language: primaryText?.language || 'ja',
-        speaker: primaryText?.speaker || 'none',
-        speaker_type: primaryText?.speaker || 'none',
+        speaker: primaryText?.speaker || 'me',
+        speaker_type: primaryText?.speaker || 'me',
         pronunciation: primaryText?.pronunciation || '',
         solution: normalizedSolution,
         post: postRefs,
@@ -1417,7 +1417,7 @@ function renderDashboardCard(dashboardPanel = document.getElementById('dashboard
     card.className = 'dashboard-flashcard';
     card.dataset.puzzleId = puzzle.id;
 
-    const frontData = puzzle.solution || { content: '', language: 'ja', pronunciation: '', speaker: 'none' };
+    const frontData = puzzle.solution || { content: '', language: 'ja', pronunciation: '', speaker: 'me' };
 
     const backData = {
       content: puzzle.text,
