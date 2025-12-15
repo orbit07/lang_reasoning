@@ -1470,13 +1470,13 @@ function renderDashboardCard(dashboardPanel = document.getElementById('dashboard
       if (wasSelected) {
         puzzle.review.lastResult = null;
         persistData();
-        renderPuzzleReviewSummary();
+        renderPuzzles();
         return;
       }
       updateReviewProgress(puzzle, result);
       targetBtn.classList.add('selected');
       persistData();
-      renderPuzzleReviewSummary();
+      renderPuzzles();
     };
 
     knownBtn.addEventListener('click', () => handleReviewSelection('known'));
@@ -1985,6 +1985,19 @@ function renderPuzzleCard(puzzle) {
     };
     renderList('言い換え', puzzle.alternatives || []);
     renderList('例文', puzzle.examples || []);
+
+    const nextReviewBlock = document.createElement('div');
+    nextReviewBlock.className = 'puzzle-list-block';
+    const nextReviewLabel = document.createElement('div');
+    nextReviewLabel.className = 'puzzle-list-label';
+    nextReviewLabel.textContent = '次回の出題日';
+    const nextReviewValue = document.createElement('p');
+    nextReviewValue.className = 'next_review_date';
+    nextReviewValue.textContent =
+      puzzle.review?.nextReviewDate != null ? formatDateOnly(puzzle.review.nextReviewDate) : '未設定';
+    nextReviewBlock.append(nextReviewLabel, nextReviewValue);
+
+    solvedContent.appendChild(nextReviewBlock);
 
     body.appendChild(createAccordion('解決', solvedContent));
   }
@@ -3125,7 +3138,7 @@ function setupDailyRefresh() {
     const key = getDateKey(Date.now());
     if (key !== state.lastReviewRefreshKey) {
       state.lastReviewRefreshKey = key;
-      renderPuzzleReviewSummary();
+      render();
     }
   }, 60 * 1000);
 }
