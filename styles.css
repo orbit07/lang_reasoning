@@ -194,7 +194,9 @@ button {
 .dashboard-card-area {
   padding: 20px 12px 0;
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  gap: 16px;
 }
 
 .dashboard-flashcard {
@@ -232,6 +234,37 @@ button {
 }
 .flashcard-toggle:hover { background: #eaf3ff; }
 .flashcard-toggle:active { transform: translateY(1px); }
+
+.flashcard-back-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.flashcard-action-button {
+  border: 1px solid var(--border);
+  background: #f7f9fc;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.flashcard-action-button.known-button {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.flashcard-action-button.unknown-button {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.flashcard-action-button:active {
+  transform: translateY(1px);
+}
 
 .dashboard-chart-container {
   position: relative;
