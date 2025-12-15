@@ -1340,14 +1340,14 @@ function renderDashboardCard(dashboardPanel = document.getElementById('dashboard
     card.className = 'dashboard-flashcard';
     card.dataset.puzzleId = puzzle.id;
 
-    const frontData = {
+    const frontData = puzzle.solution || { content: '', language: 'ja', pronunciation: '', speaker: 'none' };
+
+    const backData = {
       content: puzzle.text,
       language: puzzle.language,
       pronunciation: puzzle.pronunciation,
       speaker: puzzle.speaker_type || puzzle.speaker || 'none',
     };
-
-    const backData = puzzle.solution || { content: '', language: 'ja', pronunciation: '', speaker: 'none' };
 
     const frontFace = document.createElement('div');
     frontFace.className = 'flashcard-face flashcard-front active';
