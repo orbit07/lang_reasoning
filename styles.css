@@ -231,13 +231,15 @@ button {
 .flashcard-toggle:active { transform: translateY(1px); }
 
 .flashcard-back-actions {
-  margin-top: 12px;
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  justify-content: center;
 }
 
 .flashcard-action-button {
+  text-align: center;
   border: 1px solid var(--border);
   background: #f7f9fc;
   padding: 8px 12px;
