@@ -1303,8 +1303,8 @@ function collectTextEntries() {
   return entries;
 }
 
-function renderDashboardCard(heatmapContainer = document.getElementById('dashboard-heatmap-container')) {
-  if (!heatmapContainer) return;
+function renderDashboardCard(dashboardPanel = document.getElementById('dashboard-panel')) {
+  if (!dashboardPanel) return;
 
   let cardArea = document.getElementById('dashboard-card-area');
   if (!cardArea) {
@@ -1313,8 +1313,13 @@ function renderDashboardCard(heatmapContainer = document.getElementById('dashboa
     cardArea.className = 'dashboard-card-area';
   }
 
-  if (cardArea.parentElement !== heatmapContainer) {
-    heatmapContainer.appendChild(cardArea);
+  const heatmapContainer = document.getElementById('dashboard-heatmap-container');
+  if (heatmapContainer && dashboardPanel.contains(heatmapContainer)) {
+    if (heatmapContainer.nextElementSibling !== cardArea) {
+      dashboardPanel.insertBefore(cardArea, heatmapContainer.nextElementSibling);
+    }
+  } else if (cardArea.parentElement !== dashboardPanel) {
+    dashboardPanel.appendChild(cardArea);
   }
 
   cardArea.innerHTML = '';
@@ -1425,10 +1430,11 @@ function render() {
 }
 
 function renderDashboard() {
+  const dashboardPanel = document.getElementById('dashboard-panel');
   const chartContainer = document.getElementById('dashboard-chart-container');
   const countsContainer = document.getElementById('dashboard-text-counts');
   const heatmapContainer = document.getElementById('dashboard-heatmap-container');
-  if (!chartContainer || !countsContainer || !heatmapContainer) return;
+  if (!dashboardPanel || !chartContainer || !countsContainer || !heatmapContainer) return;
 
   const entries = collectTextEntries();
   const counts = { 'en-US': 0, 'ko-KR': 0, 'zh-TW': 0 };
@@ -1608,7 +1614,7 @@ function renderDashboard() {
 
   heatmapContainer.append(scrollArea, legend);
 
-  renderDashboardCard(heatmapContainer);
+  renderDashboardCard(dashboardPanel);
 
   // 最新が右端なので、右端から表示
   requestAnimationFrame(() => {
