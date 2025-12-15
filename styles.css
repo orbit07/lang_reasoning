@@ -1171,6 +1171,13 @@ button {
   background: #f4f7fb;
 }
 
+.puzzle-review-summary {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .puzzle-list-block { display: flex; flex-direction: column; gap: 6px; }
 .puzzle-list-label { color: #334e68; }
 .puzzle-solved-list {

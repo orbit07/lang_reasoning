@@ -1510,6 +1510,7 @@ function getHeatmapColor(count) {
 function render() {
   renderTimeline();
   renderPuzzles();
+  renderPuzzleReviewSummary();
   runSearch();
   if (state.currentTab === 'dashboard') {
     renderDashboard();
@@ -2030,6 +2031,69 @@ function renderPuzzleCard(puzzle) {
 
   card.append(meta, body, actions);
   return card;
+}
+
+function getTodayReviewPuzzles(todayStart = getStartOfDay(Date.now())) {
+  return (state.data.puzzles || [])
+    .filter((puzzle) => puzzle.isSolved && puzzle.review?.nextReviewDate !== null)
+    .filter((puzzle) => puzzle.review.nextReviewDate <= todayStart);
+}
+
+function getNextScheduledReviewDate(todayStart = getStartOfDay(Date.now())) {
+  const sortedDates = (state.data.puzzles || [])
+    .filter((puzzle) => puzzle.isSolved && puzzle.review?.nextReviewDate)
+    .map((puzzle) => puzzle.review.nextReviewDate)
+    .sort((a, b) => a - b);
+  return sortedDates.find((date) => date >= todayStart) ?? sortedDates[0] ?? null;
+}
+
+function renderPuzzleReviewSummary() {
+  const container = document.getElementById('puzzle-review-summary');
+  if (!container) return;
+
+  const todayStart = getStartOfDay(Date.now());
+  const todayPuzzles = getTodayReviewPuzzles(todayStart);
+  const nextReviewDate = getNextScheduledReviewDate(todayStart);
+
+  const exampleBlock = document.createElement('div');
+  exampleBlock.className = 'puzzle-list-block';
+  const exampleLabel = document.createElement('div');
+  exampleLabel.className = 'puzzle-list-label';
+  exampleLabel.textContent = '今日の再調査 例文';
+  const exampleList = document.createElement('ul');
+  exampleList.className = 'puzzle-solved-list';
+
+  if (todayPuzzles.length) {
+    todayPuzzles.forEach((puzzle) => {
+      const lines = (puzzle.examples?.length ? puzzle.examples : [puzzle.text]).filter(Boolean);
+      lines.forEach((text) => {
+        const item = document.createElement('li');
+        item.className = 'puzzle-solved-item';
+        item.textContent = text;
+        exampleList.appendChild(item);
+      });
+    });
+  } else {
+    const item = document.createElement('li');
+    item.className = 'puzzle-solved-item';
+    item.textContent = '今日の再調査はありません。';
+    exampleList.appendChild(item);
+  }
+
+  exampleBlock.append(exampleLabel, exampleList);
+
+  const dateBlock = document.createElement('div');
+  dateBlock.className = 'puzzle-list-block';
+  const dateLabel = document.createElement('div');
+  dateLabel.className = 'puzzle-list-label';
+  dateLabel.textContent = '次回の出題日';
+  const dateValue = document.createElement('p');
+  dateValue.className = 'next_review_date';
+  dateValue.textContent = nextReviewDate ? formatDateOnly(nextReviewDate) : '未設定';
+  dateBlock.append(dateLabel, dateValue);
+
+  container.innerHTML = '';
+  container.append(exampleBlock, dateBlock);
 }
 
 function renderPuzzles() {
