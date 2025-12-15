@@ -218,7 +218,6 @@ button {
 .dashboard-flashcard.flipped .flashcard-back { display: block; }
 
 .flashcard-toggle {
-  align-self: flex-end;
   background: #f4f7fb;
   border: 1px solid var(--border);
   color: var(--text);
@@ -232,10 +231,17 @@ button {
 
 .flashcard-back-actions {
   margin-top: 10px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 10px;
   justify-content: center;
+}
+
+.flashcard-back-actions > button {
+  flex: 1;
+}
+
+.dashboard-flashcard:not(.flipped) .flashcard-action-button {
+  display: none;
 }
 
 .flashcard-action-button {
