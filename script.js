@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'lang-sns-data';
+const LAST_TAB_KEY = 'lang-last-tab';
 const DATA_VERSION = 3;
 const STORAGE_LIMIT = 5 * 1024 * 1024; // 5MB approximate
 const IMAGE_RESIZE_THRESHOLD = 1024 * 1024; // 1MB
@@ -17,14 +18,26 @@ const defaultData = () => ({
   lastId: 0,
 });
 
+function getInitialTab() {
+  const storedTab = localStorage.getItem(LAST_TAB_KEY);
+  if (storedTab && tabOrder.includes(storedTab)) return storedTab;
+  return 'dashboard';
+}
+
+function persistCurrentTab(tabName) {
+  localStorage.setItem(LAST_TAB_KEY, tabName);
+}
+
 function generateStableId(prefix) {
   const rand = Math.random().toString(36).slice(2, 8);
   return `${prefix}-${Date.now().toString(36)}-${rand}`;
 }
 
+const tabOrder = ['dashboard', 'timeline', 'puzzles', 'search'];
+
 const state = {
   data: defaultData(),
-  currentTab: 'timeline',
+  currentTab: 'dashboard',
   imageCache: new Map(),
   dashboardChart: null,
   hasPlayedDashboardAnimation: false,
@@ -931,13 +944,15 @@ function updateTabButtonIcon(button, isActive) {
 }
 
 function activateTab(tabName) {
+  const safeTab = tabOrder.includes(tabName) ? tabName : 'dashboard';
   const tabButtons = document.querySelectorAll('.tabs button[data-tab]');
   tabButtons.forEach((btn) => {
-    const isActive = btn.dataset.tab === tabName;
+    const isActive = btn.dataset.tab === safeTab;
     btn.classList.toggle('active', isActive);
     updateTabButtonIcon(btn, isActive);
   });
-  state.currentTab = tabName;
+  state.currentTab = safeTab;
+  persistCurrentTab(state.currentTab);
   document.querySelectorAll('.tab-panel').forEach((panel) => {
     panel.classList.toggle('active', panel.id === state.currentTab);
   });
@@ -3104,6 +3119,7 @@ function registerServiceWorker() {
 
 function init() {
   loadData();
+  state.currentTab = getInitialTab();
   setupTabs();
   activateTab(state.currentTab);
   setupGlobalEvents();

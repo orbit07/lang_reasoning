@@ -15,19 +15,19 @@
     <nav class="tabs">
       <button
         data-tab="dashboard"
-        class="tab-button tab-button-dashboard"
+        class="tab-button tab-button-dashboard active"
         data-icon-on="img/graph_on.svg"
         data-icon-off="img/graph_off.svg"
       >
-        <img src="img/graph_off.svg" alt="" aria-hidden="true" class="tab-icon" />
+        <img src="img/graph_on.svg" alt="" aria-hidden="true" class="tab-icon" />
       </button>
       <button
         data-tab="timeline"
-        class="tab-button tab-button-timeline active"
+        class="tab-button tab-button-timeline"
         data-icon-on="img/home_on.svg"
         data-icon-off="img/home_off.svg"
       >
-        <img src="img/home_on.svg" alt="" aria-hidden="true" class="tab-icon" />
+        <img src="img/home_off.svg" alt="" aria-hidden="true" class="tab-icon" />
       </button>
       <button
         data-tab="puzzles"
@@ -49,7 +49,7 @@
   </header>
 
   <main class="main-container">
-    <section id="timeline" class="tab-panel active">
+    <section id="timeline" class="tab-panel">
       <div id="timeline-list" class="card-list"></div>
       <button id="fab-import-posts" class="fab-button fab-secondary" aria-label="投稿のインポート/エクスポート">
         <img src="img/arrow.svg" alt="" width="22" />
@@ -90,7 +90,7 @@
       <div id="search-results" class="card-list"></div>
     </section>
 
-    <section id="dashboard" class="tab-panel">
+    <section id="dashboard" class="tab-panel active">
       <div id="dashboard-panel" class="dashboard-panel">
         <div class="dashboard-chart">
           <div id="dashboard-chart-container" class="dashboard-chart-container"></div>
