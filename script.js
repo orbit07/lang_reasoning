@@ -3,6 +3,11 @@ const DATA_VERSION = 3;
 const STORAGE_LIMIT = 5 * 1024 * 1024; // 5MB approximate
 const IMAGE_RESIZE_THRESHOLD = 1024 * 1024; // 1MB
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const REVIEW_OFFSETS = [0, 2, 6, 13, 29];
+
+const defaultReview = () => ({ intervalIndex: 0, nextReviewDate: null, history: [], lastResult: null });
+
 const defaultData = () => ({
   version: DATA_VERSION,
   posts: [],
@@ -23,6 +28,7 @@ const state = {
   imageCache: new Map(),
   dashboardChart: null,
   hasPlayedDashboardAnimation: false,
+  lastReviewRefreshKey: null,
 };
 
 const dashboardLanguages = [
@@ -119,6 +125,14 @@ function formatDate(ts) {
   return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
 }
 
+function formatDateOnly(ts) {
+  const d = new Date(ts);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}/${month}/${day}`;
+}
+
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -197,9 +211,55 @@ function ensureReplyFields(data) {
   ensureRefIds(data?.replies, 'reply');
 }
 
+function getStartOfDay(ts = Date.now()) {
+  const d = new Date(ts);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function ensurePuzzleReview(puzzle) {
+  const now = Date.now();
+  const baseReview = { ...defaultReview(), ...(puzzle.review || {}) };
+  const solvedAt = puzzle.solvedAt || puzzle.updatedAt || puzzle.createdAt || now;
+  if (puzzle.isSolved && !baseReview.nextReviewDate) {
+    baseReview.nextReviewDate = getStartOfDay(solvedAt);
+  }
+  baseReview.history = Array.isArray(baseReview.history) ? baseReview.history : [];
+  puzzle.review = baseReview;
+}
+
+function getReviewBaseDate(puzzle) {
+  return getStartOfDay(puzzle.solvedAt || puzzle.updatedAt || puzzle.createdAt || Date.now());
+}
+
+function calcNextReviewDate(puzzle, intervalIndex) {
+  const baseDate = getReviewBaseDate(puzzle);
+  if (intervalIndex < REVIEW_OFFSETS.length) {
+    return baseDate + REVIEW_OFFSETS[intervalIndex] * DAY_MS;
+  }
+  const prevReviewDate = puzzle.review.nextReviewDate ?? (baseDate + REVIEW_OFFSETS[REVIEW_OFFSETS.length - 1] * DAY_MS);
+  return getStartOfDay(prevReviewDate + 30 * DAY_MS);
+}
+
+function updateReviewProgress(puzzle, result, now = Date.now()) {
+  ensurePuzzleReview(puzzle);
+  const current = puzzle.review;
+  const nextIndex = result === 'known' ? current.intervalIndex + 1 : 0;
+  const nextReviewDate = calcNextReviewDate(puzzle, nextIndex);
+  const today = getStartOfDay(now);
+  const history = Array.isArray(current.history) ? current.history.slice(-9) : [];
+  history.push({ date: today, result });
+  puzzle.review = {
+    ...current,
+    intervalIndex: nextIndex,
+    nextReviewDate,
+    lastResult: result,
+    history,
+  };
+}
+
 function ensurePuzzleFields(data) {
   ensureRefIds(data?.puzzles, 'puzzle');
-  const defaultReview = () => ({ intervalIndex: 0, nextReviewDate: null, history: [] });
   const defaultTextBlock = () => ({
     content: '',
     language: 'ja',
@@ -234,7 +294,7 @@ function ensurePuzzleFields(data) {
     puzzle.alternatives = Array.isArray(puzzle.alternatives) ? puzzle.alternatives : [];
     puzzle.examples = Array.isArray(puzzle.examples) ? puzzle.examples : [];
     puzzle.tags = Array.isArray(puzzle.tags) ? puzzle.tags : [];
-    puzzle.review = puzzle.review || defaultReview();
+    ensurePuzzleReview(puzzle);
     puzzle.createdAt = puzzle.createdAt || Date.now();
     puzzle.updatedAt = puzzle.updatedAt || puzzle.createdAt;
     puzzle.pinned = Boolean(puzzle.pinned);
@@ -1227,6 +1287,7 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
       targetPuzzle.tags = tagValues;
       targetPuzzle.isSolved = solvedActive;
       targetPuzzle.solvedAt = solvedActive ? targetPuzzle.solvedAt || now : null;
+      ensurePuzzleReview(targetPuzzle);
       targetPuzzle.updatedAt = now;
     } else {
       const puzzle = {
@@ -1247,12 +1308,13 @@ function buildPuzzleForm({ mode = 'create', targetPuzzle = null } = {}) {
         alternatives,
         examples,
         tags: tagValues,
-        review: { intervalIndex: 0, nextReviewDate: null, history: [] },
+        review: defaultReview(),
         createdAt: now,
         updatedAt: now,
         pinned: false,
         pinnedAt: null,
       };
+      ensurePuzzleReview(puzzle);
       state.data.puzzles.push(puzzle);
     }
 
@@ -1394,6 +1456,32 @@ function renderDashboardCard(dashboardPanel = document.getElementById('dashboard
 
     toggleBtn.addEventListener('click', () => setFlipped(!card.classList.contains('flipped')));
     setFlipped(false);
+
+    const applySelectionState = () => {
+      knownBtn.classList.toggle('selected', puzzle.review?.lastResult === 'known');
+      unknownBtn.classList.toggle('selected', puzzle.review?.lastResult === 'unknown');
+    };
+
+    const handleReviewSelection = (result) => {
+      const targetBtn = result === 'known' ? knownBtn : unknownBtn;
+      const wasSelected = targetBtn.classList.contains('selected');
+      knownBtn.classList.remove('selected');
+      unknownBtn.classList.remove('selected');
+      if (wasSelected) {
+        puzzle.review.lastResult = null;
+        persistData();
+        renderPuzzles();
+        return;
+      }
+      updateReviewProgress(puzzle, result);
+      targetBtn.classList.add('selected');
+      persistData();
+      renderPuzzles();
+    };
+
+    knownBtn.addEventListener('click', () => handleReviewSelection('known'));
+    unknownBtn.addEventListener('click', () => handleReviewSelection('unknown'));
+    applySelectionState();
 
     backActions.append(knownBtn, unknownBtn, toggleBtn);
 
@@ -1896,6 +1984,19 @@ function renderPuzzleCard(puzzle) {
     };
     renderList('言い換え', puzzle.alternatives || []);
     renderList('例文', puzzle.examples || []);
+
+    const nextReviewBlock = document.createElement('div');
+    nextReviewBlock.className = 'puzzle-list-block';
+    const nextReviewLabel = document.createElement('div');
+    nextReviewLabel.className = 'puzzle-list-label';
+    nextReviewLabel.textContent = '次回の出題日';
+    const nextReviewValue = document.createElement('p');
+    nextReviewValue.className = 'next_review_date';
+    nextReviewValue.textContent =
+      puzzle.review?.nextReviewDate != null ? formatDateOnly(puzzle.review.nextReviewDate) : '未設定';
+    nextReviewBlock.append(nextReviewLabel, nextReviewValue);
+
+    solvedContent.appendChild(nextReviewBlock);
 
     body.appendChild(createAccordion('解決', solvedContent));
   }
@@ -2967,6 +3068,17 @@ function setupGlobalEvents() {
   });
 }
 
+function setupDailyRefresh() {
+  state.lastReviewRefreshKey = getDateKey(Date.now());
+  setInterval(() => {
+    const key = getDateKey(Date.now());
+    if (key !== state.lastReviewRefreshKey) {
+      state.lastReviewRefreshKey = key;
+      render();
+    }
+  }, 60 * 1000);
+}
+
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js').catch((err) => {
@@ -2981,6 +3093,7 @@ function init() {
   activateTab(state.currentTab);
   setupGlobalEvents();
   registerServiceWorker();
+  setupDailyRefresh();
   render();
 }
 
