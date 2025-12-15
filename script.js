@@ -2047,12 +2047,6 @@ function getNextScheduledReviewDate(todayStart = getStartOfDay(Date.now())) {
   return sortedDates.find((date) => date >= todayStart) ?? sortedDates[0] ?? null;
 }
 
-function renderPuzzleReviewSummary() {
-  const container = document.getElementById('puzzle-review-summary');
-  if (!container) return;
-  container.innerHTML = '';
-}
-
 function renderPuzzles() {
   const container = document.getElementById('puzzle-list');
   if (!container) return;
