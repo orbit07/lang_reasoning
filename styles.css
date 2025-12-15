@@ -230,14 +230,9 @@ button {
 .flashcard-toggle:active { transform: translateY(1px); }
 
 .flashcard-back-actions {
-  margin-top: 10px;
   display: flex;
   gap: 10px;
-  justify-content: center;
-}
-
-.flashcard-back-actions > button {
-  flex: 1;
+  justify-content: flex-end;
 }
 
 .dashboard-flashcard:not(.flipped) .flashcard-action-button {
