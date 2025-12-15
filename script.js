@@ -1381,9 +1381,6 @@ function renderDashboardCard(dashboardPanel = document.getElementById('dashboard
     unknownBtn.type = 'button';
     unknownBtn.className = 'flashcard-action-button unknown-button';
     unknownBtn.textContent = '分からなかった';
-    backActions.append(knownBtn, unknownBtn);
-    backFace.appendChild(backActions);
-
     const toggleBtn = document.createElement('button');
     toggleBtn.type = 'button';
     toggleBtn.className = 'flashcard-toggle';
@@ -1398,7 +1395,9 @@ function renderDashboardCard(dashboardPanel = document.getElementById('dashboard
     toggleBtn.addEventListener('click', () => setFlipped(!card.classList.contains('flipped')));
     setFlipped(false);
 
-    card.append(frontFace, backFace, toggleBtn);
+    backActions.append(knownBtn, unknownBtn, toggleBtn);
+
+    card.append(frontFace, backFace, backActions);
     fragment.appendChild(card);
   });
 
